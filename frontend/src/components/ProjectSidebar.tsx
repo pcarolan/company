@@ -1,0 +1,213 @@
+import { useAgentStore } from '../stores/useAgentStore'
+import { ROLE_ICONS, STATUS_COLORS, PRIORITY_COLORS } from '../theme/colors'
+
+const PROJECT_STATUS_COLORS: Record<string, string> = {
+  planning: 'text-parchment-500',
+  active: 'text-blood',
+  paused: 'text-amber-600',
+  completed: 'text-green-600',
+  archived: 'text-parchment-400',
+}
+
+export function ProjectSidebar() {
+  const projects = useAgentStore((s) => s.projects)
+  const agents = useAgentStore((s) => s.agents)
+  const tasks = useAgentStore((s) => s.tasks)
+  const selectedProjectId = useAgentStore((s) => s.selectedProjectId)
+  const selectProject = useAgentStore((s) => s.selectProject)
+
+  const selectedProject = projects.find((p) => p.id === selectedProjectId)
+
+  return (
+    <div className="
+      fixed top-0 left-0 w-72 h-full
+      bg-parchment-50/95 backdrop-blur-sm
+      border-r border-parchment-300
+      z-50 flex flex-col
+    ">
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-parchment-300">
+        <h2 className="font-typewriter text-sm text-parchment-600">projects</h2>
+      </div>
+
+      {/* Project list */}
+      <div className="flex-shrink-0 border-b border-parchment-200">
+        {projects.length === 0 ? (
+          <div className="px-4 py-3 text-xs font-mono text-parchment-400">no projects</div>
+        ) : (
+          projects.map((project) => {
+            const isSelected = project.id === selectedProjectId
+            const statusColor = PROJECT_STATUS_COLORS[project.status] || PROJECT_STATUS_COLORS.planning
+            const workingCount = project.agent_ids.filter((aid) => {
+              const a = agents.find((ag) => ag.id === aid)
+              return a?.status === 'working'
+            }).length
+
+            return (
+              <button
+                key={project.id}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  selectProject(isSelected ? null : project.id)
+                }}
+                className={`
+                  w-full text-left px-4 py-2.5 border-b border-parchment-100
+                  transition-colors duration-150
+                  ${isSelected
+                    ? 'bg-blood/5 border-l-2 border-l-blood'
+                    : 'hover:bg-parchment-200/50 border-l-2 border-l-transparent'
+                  }
+                `}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-typewriter text-sm truncate">{project.name}</span>
+                  {workingCount > 0 && (
+                    <span className="flex items-center gap-1 text-xs">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blood opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-blood" />
+                      </span>
+                      <span className="font-mono text-blood">{workingCount}</span>
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className={`text-xs font-mono ${statusColor}`}>{project.status}</span>
+                  <span className="text-xs text-parchment-400 font-mono">
+                    {project.agent_ids.length}a · {project.task_ids.length}t
+                  </span>
+                </div>
+              </button>
+            )
+          })
+        )}
+      </div>
+
+      {/* Project detail */}
+      {selectedProject ? (
+        <div className="flex-1 overflow-y-auto">
+          {/* Description */}
+          {selectedProject.description && (
+            <div className="px-4 py-3 border-b border-parchment-200">
+              <p className="text-xs text-parchment-600">{selectedProject.description}</p>
+            </div>
+          )}
+
+          {/* Gates */}
+          {Object.keys(selectedProject.gates).length > 0 && (
+            <div className="px-4 py-3 border-b border-parchment-200">
+              <h3 className="font-typewriter text-xs text-parchment-500 mb-2">gates</h3>
+              <div className="space-y-1">
+                {Object.entries(selectedProject.gates).map(([name, cmd]) => (
+                  <div key={name} className="flex items-start gap-2">
+                    <span className="font-mono text-xs text-blood shrink-0">{name}</span>
+                    <span className="font-mono text-xs text-parchment-500 truncate">{cmd}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Agents */}
+          <div className="px-4 py-3 border-b border-parchment-200">
+            <h3 className="font-typewriter text-xs text-parchment-500 mb-2">
+              agents ({selectedProject.agent_ids.length})
+            </h3>
+            <div className="space-y-1.5">
+              {selectedProject.agent_ids.map((aid) => {
+                const agent = agents.find((a) => a.id === aid)
+                if (!agent) return null
+                const style = STATUS_COLORS[agent.status] || STATUS_COLORS.idle
+                const icon = ROLE_ICONS[agent.role] || '●'
+                const isWorking = agent.status === 'working'
+
+                return (
+                  <div
+                    key={aid}
+                    className={`
+                      flex items-center gap-2 px-2 py-1.5 rounded
+                      ${style.bg} border ${style.border}
+                    `}
+                  >
+                    <span className="text-sm">{icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-typewriter text-xs font-bold truncate">{agent.name}</span>
+                        {isWorking && (
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blood opacity-75" />
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blood" />
+                          </span>
+                        )}
+                      </div>
+                      {agent.thinking ? (
+                        <div className="text-xs font-mono text-parchment-500 italic truncate">
+                          💭 {agent.thinking}
+                        </div>
+                      ) : (
+                        <div className="text-xs font-mono text-parchment-400">
+                          {agent.status} · ↑{agent.commits} ↩{agent.reverts}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Tasks */}
+          <div className="px-4 py-3">
+            <h3 className="font-typewriter text-xs text-parchment-500 mb-2">
+              tasks ({selectedProject.task_ids.length})
+            </h3>
+            <div className="space-y-1.5">
+              {selectedProject.task_ids.map((tid) => {
+                const task = tasks.find((t) => t.id === tid)
+                if (!task) return null
+                const priorityBorder = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS[2]
+                const assignedAgent = task.assigned_agent_id
+                  ? agents.find((a) => a.id === task.assigned_agent_id)
+                  : null
+
+                return (
+                  <div
+                    key={tid}
+                    className={`
+                      px-2 py-1.5 rounded border border-parchment-300 border-l-4 ${priorityBorder}
+                      bg-parchment-50
+                    `}
+                  >
+                    <div className="text-xs font-semibold text-parchment-800 truncate">
+                      {task.title}
+                    </div>
+                    <div className="flex items-center justify-between mt-0.5">
+                      <span className={`text-xs font-mono px-1 rounded ${
+                        task.status === 'done' ? 'bg-green-100 text-green-700' :
+                        task.status === 'claimed' || task.status === 'in_progress' ? 'bg-blood/10 text-blood' :
+                        'bg-parchment-200 text-parchment-500'
+                      }`}>
+                        {task.status}
+                      </span>
+                      {assignedAgent && (
+                        <span className="text-xs font-mono text-parchment-400 truncate ml-1">
+                          → {assignedAgent.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center px-4">
+          <p className="text-xs font-mono text-parchment-400 text-center">
+            select a project to see details
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}

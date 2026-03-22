@@ -109,8 +109,8 @@ export function Canvas() {
         ))}
       </div>
 
-      {/* HUD — top left */}
-      <div className="fixed top-4 left-4 z-50">
+      {/* HUD — top center */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 text-center">
         <h1 className="font-typewriter text-xl text-parchment-800">
           company <span className="text-blood">●</span>
         </h1>

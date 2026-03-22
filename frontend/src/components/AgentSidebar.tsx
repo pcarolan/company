@@ -1,7 +1,7 @@
 import { useAgentStore } from '../stores/useAgentStore'
 import { ROLE_ICONS, STATUS_COLORS } from '../theme/colors'
 
-export function Sidebar() {
+export function AgentSidebar() {
   const agents = useAgentStore((s) => s.agents)
   const selectedId = useAgentStore((s) => s.selectedId)
   const selected = agents.find((a) => a.id === selectedId)

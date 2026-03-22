@@ -70,6 +70,7 @@ interface AgentStoreState {
   events: EventItem[]
   messages: AgentMessage[]
   selectedId: string | null
+  selectedProjectId: string | null
 
   setCanvas: (agents: AgentNode[], tasks: TaskNode[], events: EventItem[], projects?: ProjectNode[]) => void
   moveAgent: (id: string, x: number, y: number) => void
@@ -77,6 +78,7 @@ interface AgentStoreState {
   addEvent: (event: EventItem) => void
   addMessage: (msg: AgentMessage) => void
   select: (id: string | null) => void
+  selectProject: (id: string | null) => void
 }
 
 export const useAgentStore = create<AgentStoreState>((set) => ({
@@ -86,6 +88,7 @@ export const useAgentStore = create<AgentStoreState>((set) => ({
   events: [],
   messages: [],
   selectedId: null,
+  selectedProjectId: null,
 
   setCanvas: (agents, tasks, events, projects) => set({ agents, tasks, events, projects: projects || [] }),
 
@@ -107,4 +110,5 @@ export const useAgentStore = create<AgentStoreState>((set) => ({
   })),
 
   select: (id) => set({ selectedId: id }),
+  selectProject: (id) => set({ selectedProjectId: id }),
 }))

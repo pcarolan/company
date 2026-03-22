@@ -1,6 +1,7 @@
 import { useWebSocket } from './hooks/useWebSocket'
 import { Canvas } from './components/Canvas'
-import { Sidebar } from './components/Sidebar'
+import { ProjectSidebar } from './components/ProjectSidebar'
+import { AgentSidebar } from './components/AgentSidebar'
 import { EventFeed } from './components/EventFeed'
 
 export function App() {
@@ -8,8 +9,9 @@ export function App() {
 
   return (
     <>
+      <ProjectSidebar />
       <Canvas />
-      <Sidebar />
+      <AgentSidebar />
       <EventFeed />
     </>
   )
