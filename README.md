@@ -47,26 +47,40 @@ One container. One system. The company app IS the company.
 - **Design:** Radiohead aesthetic — parchment, typewriter, muted reds
 - **All in one container**
 
-## Run Locally (Dev Mode)
+## Run
 
-Until the single-container build is ready, run the pieces separately:
+### Docker (production)
 
 ```bash
-# OpenClaw — already running in Docker
-# (it's how you're reading this)
+# Build
+docker build -t company .
 
-# Backend
+# Run everything (default)
+docker run -p 8000:8000 company
+
+# Run specific service
+docker run -p 8000:8000 company backend        # backend only
+docker run -p 3000:3000 company frontend-dev   # frontend dev server
+docker run -p 18789:18789 company openclaw     # openclaw gateway
+```
+
+Canvas + API both at **http://localhost:8000**
+
+### Local Dev
+
+```bash
+# Backend (terminal 1)
 cd backend
 uv sync --extra dev
 uv run uvicorn app.main:app --reload --port 8000
 
-# Frontend
+# Frontend (terminal 2)
 cd frontend
 npm install
 npm run dev
 ```
 
-Canvas at **http://localhost:3000**
+Canvas at **http://localhost:3000** (proxies API to :8000)
 
 ## Built On
 

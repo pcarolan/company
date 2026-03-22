@@ -1,18 +1,13 @@
-# Company — single container: OpenClaw + FastAPI + React frontend
-# For now this builds the backend + frontend. OpenClaw integration TBD.
+# Company — single container, multiple entrypoints
+#
+# Everything lives in one image. Run with different commands:
+#   docker run company                    # all services (default)
+#   docker run company backend            # backend only
+#   docker run company frontend-dev       # frontend dev server
+#   docker run company openclaw           # openclaw gateway
 
-FROM python:3.12-slim AS backend
-
-WORKDIR /app
-COPY backend/pyproject.toml backend/uv.lock ./backend/
-RUN pip install uv && cd backend && uv sync --extra dev
-
-COPY backend/ ./backend/
-COPY plan.md ./plan.md
-COPY project.yaml ./project.yaml
-
-# Frontend build
-FROM node:20-slim AS frontend
+# --- Stage 1: Build frontend ---
+FROM node:20-slim AS frontend-build
 
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
@@ -20,23 +15,42 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-# Final image
+# --- Stage 2: Final image ---
 FROM python:3.12-slim
+
+# System deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git curl nodejs npm supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
 
 WORKDIR /app
 
-# Install uv
-RUN pip install uv
-
 # Backend
-COPY --from=backend /app/backend ./backend
-COPY plan.md ./plan.md
-COPY project.yaml ./project.yaml
-RUN cd backend && uv sync
+COPY backend/pyproject.toml backend/uv.lock ./backend/
+RUN cd backend && uv sync --extra dev
+COPY backend/ ./backend/
 
-# Frontend static files (served by FastAPI)
-COPY --from=frontend /app/frontend/dist ./frontend/dist
+# Frontend dist (served by backend in production)
+COPY --from=frontend-build /app/frontend/dist ./frontend/dist
+
+# Frontend source (for dev mode)
+COPY frontend/ ./frontend-src/
+
+# Project files
+COPY plan.md project.yaml ./
+
+# Supervisor config — runs all services
+COPY supervisord.conf /etc/supervisor/conf.d/company.conf
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "cd backend && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["all"]
