@@ -425,106 +425,114 @@ export function ProjectSidebar() {
                                   )}
 
                                   {/* Action buttons */}
-                                  <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                                    <button
-                                      onClick={() => { setPlanDraft(plan.content || ''); setEditingPlanId(plan.id) }}
-                                      className="text-xs font-mono px-2 py-0.5 rounded
-                                        bg-parchment-200 text-parchment-600 hover:bg-parchment-300"
-                                    >
-                                      edit
-                                    </button>
+                                  {(() => {
+                                    const s = plan.status
+                                    const isRunning = runningPlanId === plan.id
+                                    const hasContent = !!plan.content
 
-                                    {plan.status === 'draft' && (
+                                    const Btn = ({ onClick, className, children }: { onClick: () => void, className: string, children: React.ReactNode }) => (
                                       <button
-                                        onClick={async () => {
-                                          await fetch(`/api/plans/${plan.id}/status`, {
-                                            method: 'PUT',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ status: 'proposed' }),
-                                          })
-                                        }}
-                                        className="text-xs font-mono px-2 py-0.5 rounded
-                                          bg-amber-100 text-amber-700 hover:bg-amber-200"
+                                        onClick={(e) => { e.stopPropagation(); onClick() }}
+                                        className={`text-xs font-mono px-2 py-0.5 rounded transition-colors ${className}`}
                                       >
-                                        propose
+                                        {children}
                                       </button>
-                                    )}
+                                    )
 
-                                    {(plan.status === 'proposed' || plan.status === 'draft') && (
-                                      <button
-                                        onClick={async () => {
-                                          await fetch(`/api/plans/${plan.id}/status`, {
-                                            method: 'PUT',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ status: 'approved' }),
-                                          })
-                                        }}
-                                        className="text-xs font-mono px-2 py-0.5 rounded
-                                          bg-blue-100 text-blue-700 hover:bg-blue-200"
-                                      >
-                                        approve
-                                      </button>
-                                    )}
+                                    return (
+                                      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                                        {/* Always: edit */}
+                                        <Btn
+                                          onClick={() => { setPlanDraft(plan.content || ''); setEditingPlanId(plan.id) }}
+                                          className="bg-parchment-200 text-parchment-600 hover:bg-parchment-300"
+                                        >
+                                          edit
+                                        </Btn>
 
-                                    {(plan.status === 'approved' || plan.status === 'active') && plan.content && (
-                                      <button
-                                        onClick={async () => {
-                                          await fetch(`/api/plans/${plan.id}/generate-tasks`, { method: 'POST' })
-                                        }}
-                                        className="text-xs font-mono px-2 py-0.5 rounded
-                                          bg-green-100 text-green-700 hover:bg-green-200"
-                                      >
-                                        generate tasks
-                                      </button>
-                                    )}
-
-                                    {!isActive && (plan.status === 'approved' || plan.status === 'active') && (
-                                      <button
-                                        onClick={async () => {
-                                          await fetch(`/api/plans/${plan.id}/status`, {
-                                            method: 'PUT',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ status: 'active' }),
-                                          })
-                                        }}
-                                        className="text-xs font-mono px-2 py-0.5 rounded
-                                          bg-blood/10 text-blood hover:bg-blood/20"
-                                      >
-                                        activate
-                                      </button>
-                                    )}
-
-                                    {/* Run / Stop */}
-                                    {plan.status === 'active' && runningPlanId === plan.id ? (
-                                      <button
-                                        onClick={async (e) => { e.stopPropagation(); await handleStopPlan(plan.id) }}
-                                        className="text-xs font-mono px-2 py-0.5 rounded
-                                          bg-parchment-200 text-parchment-700 hover:bg-parchment-300
-                                          flex items-center gap-1"
-                                      >
-                                        <span>■</span> stop
-                                      </button>
-                                    ) : (plan.status === 'active' || plan.status === 'approved') && plan.content ? (
-                                      <button
-                                        onClick={async (e) => { e.stopPropagation(); await handleRunPlan(plan.id) }}
-                                        disabled={runLoading}
-                                        className="text-xs font-mono px-2 py-0.5 rounded
-                                          bg-blood text-white hover:bg-blood/80
-                                          disabled:opacity-50
-                                          flex items-center gap-1"
-                                      >
-                                        {runLoading && runningPlanId === plan.id ? (
-                                          <span className="animate-pulse">...</span>
-                                        ) : (
-                                          <>▶ run</>
+                                        {/* draft → propose or approve */}
+                                        {s === 'draft' && (
+                                          <Btn
+                                            onClick={async () => {
+                                              await fetch(`/api/plans/${plan.id}/status`, {
+                                                method: 'PUT',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ status: 'approved' }),
+                                              })
+                                            }}
+                                            className="bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                          >
+                                            approve
+                                          </Btn>
                                         )}
-                                      </button>
-                                    ) : null}
 
-                                    {isActive && !runningPlanId && (
-                                      <span className="text-xs font-mono text-blood">● active</span>
-                                    )}
-                                  </div>
+                                        {/* proposed → approve */}
+                                        {s === 'proposed' && (
+                                          <Btn
+                                            onClick={async () => {
+                                              await fetch(`/api/plans/${plan.id}/status`, {
+                                                method: 'PUT',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ status: 'approved' }),
+                                              })
+                                            }}
+                                            className="bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                          >
+                                            approve
+                                          </Btn>
+                                        )}
+
+                                        {/* approved → run (activates + runs) */}
+                                        {s === 'approved' && hasContent && (
+                                          <Btn
+                                            onClick={async () => { await handleRunPlan(plan.id) }}
+                                            className="bg-blood text-white hover:bg-blood/80"
+                                          >
+                                            {runLoading && isRunning ? '...' : '▶ run'}
+                                          </Btn>
+                                        )}
+
+                                        {/* active + not running → run or generate tasks */}
+                                        {s === 'active' && !isRunning && hasContent && (
+                                          <>
+                                            <Btn
+                                              onClick={async () => { await handleRunPlan(plan.id) }}
+                                              className="bg-blood text-white hover:bg-blood/80"
+                                            >
+                                              {runLoading && isRunning ? '...' : '▶ run'}
+                                            </Btn>
+                                            <Btn
+                                              onClick={async () => {
+                                                await fetch(`/api/plans/${plan.id}/generate-tasks`, { method: 'POST' })
+                                              }}
+                                              className="bg-green-100 text-green-700 hover:bg-green-200"
+                                            >
+                                              gen tasks
+                                            </Btn>
+                                          </>
+                                        )}
+
+                                        {/* active + running → stop */}
+                                        {s === 'active' && isRunning && (
+                                          <Btn
+                                            onClick={async () => { await handleStopPlan(plan.id) }}
+                                            className="bg-parchment-200 text-parchment-700 hover:bg-parchment-300"
+                                          >
+                                            ■ stop
+                                          </Btn>
+                                        )}
+
+                                        {/* active indicator */}
+                                        {isActive && !isRunning && (
+                                          <span className="text-xs font-mono text-blood">● active</span>
+                                        )}
+
+                                        {/* running indicator */}
+                                        {isRunning && (
+                                          <span className="h-2.5 w-2.5 rounded-full border-2 border-parchment-300 border-t-blood animate-spin" />
+                                        )}
+                                      </div>
+                                    )
+                                  })()}
                                 </>
                               )}
                             </div>
