@@ -18,6 +18,21 @@ export interface AgentNode {
   tokens_prompt: number
   tokens_completion: number
   api_calls: number
+  session_id: string | null
+  has_soul: boolean
+  has_memory: boolean
+  has_program: boolean
+  daily_note_count: number
+}
+
+export interface AgentIdentity {
+  id: string
+  name: string
+  role: string
+  soul: string
+  memory: string
+  program: string
+  daily_notes: Record<string, string>
 }
 
 export interface AgentMessage {

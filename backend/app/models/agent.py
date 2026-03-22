@@ -1,4 +1,11 @@
-"""Agent model — a worker on the infinite canvas."""
+"""Agent model — a worker on the infinite canvas.
+
+Each agent is a full OpenClaw instance with its own:
+- SOUL.md (persona, personality, boundaries)
+- MEMORY.md (long-term curated memory)
+- memory/ directory (daily notes)
+- program.md (how it works)
+"""
 
 from __future__ import annotations
 
@@ -29,7 +36,7 @@ class AgentStatus(str, Enum):
 
 
 class Agent(BaseModel):
-    """An agent on the canvas. Has a role, scope, branch, and position."""
+    """An agent on the canvas. Each is a full OpenClaw instance."""
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4())[:8])
     name: str
@@ -45,18 +52,27 @@ class Agent(BaseModel):
     x: float = 0.0
     y: float = 0.0
 
+    # identity — each agent is its own OpenClaw instance
+    soul: str = ""  # SOUL.md content
+    memory: str = ""  # MEMORY.md content
+    daily_notes: dict[str, str] = Field(default_factory=dict)  # date -> content
+    program: str = ""  # program.md content
+
     # state
     current_task_id: Optional[str] = None
     last_commit: Optional[str] = None
     commits_this_session: int = 0
     reverts_this_session: int = 0
-    thinking: Optional[str] = None  # what the agent is currently doing
+    thinking: Optional[str] = None
 
     # cost tracking (OpenRouter)
     cost_usd: float = 0.0
     tokens_prompt: int = 0
     tokens_completion: int = 0
     api_calls: int = 0
+
+    # openclaw session
+    session_id: Optional[str] = None  # OpenClaw session key when running
 
     # meta
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -82,4 +98,10 @@ class Agent(BaseModel):
             "tokens_prompt": self.tokens_prompt,
             "tokens_completion": self.tokens_completion,
             "api_calls": self.api_calls,
+            "session_id": self.session_id,
+            # include whether identity files exist (not the full content)
+            "has_soul": bool(self.soul),
+            "has_memory": bool(self.memory),
+            "has_program": bool(self.program),
+            "daily_note_count": len(self.daily_notes),
         }

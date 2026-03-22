@@ -24,8 +24,18 @@ class CreateAgentRequest(BaseModel):
     name: str
     role: AgentRole
     owned_paths: list[str] = []
+    soul: str = ""
+    program: str = ""
     x: float = 0.0
     y: float = 0.0
+
+
+class UpdateAgentFileRequest(BaseModel):
+    content: str
+
+
+class UpdateDailyNoteRequest(BaseModel):
+    content: str
 
 
 class MoveAgentRequest(BaseModel):
@@ -125,6 +135,8 @@ def create_agent(req: CreateAgentRequest):
         owned_paths=req.owned_paths,
         x=req.x,
         y=req.y,
+        soul=req.soul,
+        program=req.program,
     )
     return agent.to_canvas_node()
 
@@ -151,6 +163,103 @@ def move_agent(agent_id: str, req: MoveAgentRequest):
     if not agent:
         raise HTTPException(404, "Agent not found")
     return agent.to_canvas_node()
+
+
+# --- agent identity files ---
+
+@router.get("/agents/{agent_id}/soul")
+def get_agent_soul(agent_id: str):
+    agent = state.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(404, "Agent not found")
+    return {"content": agent.soul}
+
+
+@router.put("/agents/{agent_id}/soul")
+def set_agent_soul(agent_id: str, req: UpdateAgentFileRequest):
+    agent = state.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(404, "Agent not found")
+    agent.soul = req.content
+    agent.last_active = None  # will be set by datetime.now below
+    return {"ok": True}
+
+
+@router.get("/agents/{agent_id}/memory")
+def get_agent_memory(agent_id: str):
+    agent = state.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(404, "Agent not found")
+    return {"content": agent.memory}
+
+
+@router.put("/agents/{agent_id}/memory")
+def set_agent_memory(agent_id: str, req: UpdateAgentFileRequest):
+    agent = state.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(404, "Agent not found")
+    agent.memory = req.content
+    return {"ok": True}
+
+
+@router.get("/agents/{agent_id}/program")
+def get_agent_program(agent_id: str):
+    agent = state.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(404, "Agent not found")
+    return {"content": agent.program}
+
+
+@router.put("/agents/{agent_id}/program")
+def set_agent_program(agent_id: str, req: UpdateAgentFileRequest):
+    agent = state.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(404, "Agent not found")
+    agent.program = req.content
+    return {"ok": True}
+
+
+@router.get("/agents/{agent_id}/notes")
+def list_agent_notes(agent_id: str):
+    agent = state.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(404, "Agent not found")
+    return {"dates": sorted(agent.daily_notes.keys(), reverse=True)}
+
+
+@router.get("/agents/{agent_id}/notes/{date}")
+def get_agent_note(agent_id: str, date: str):
+    agent = state.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(404, "Agent not found")
+    content = agent.daily_notes.get(date, "")
+    return {"date": date, "content": content}
+
+
+@router.put("/agents/{agent_id}/notes/{date}")
+def set_agent_note(agent_id: str, date: str, req: UpdateDailyNoteRequest):
+    agent = state.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(404, "Agent not found")
+    agent.daily_notes[date] = req.content
+    return {"ok": True}
+
+
+@router.get("/agents/{agent_id}/identity")
+def get_agent_identity(agent_id: str):
+    """Full agent identity — all files in one response."""
+    agent = state.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(404, "Agent not found")
+    return {
+        "id": agent.id,
+        "name": agent.name,
+        "role": agent.role.value,
+        "soul": agent.soul,
+        "memory": agent.memory,
+        "program": agent.program,
+        "daily_notes": agent.daily_notes,
+    }
 
 
 @router.get("/tasks")

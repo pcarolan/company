@@ -27,6 +27,8 @@ class CompanyState:
         owned_paths: list[str] | None = None,
         x: float = 0.0,
         y: float = 0.0,
+        soul: str = "",
+        program: str = "",
     ) -> Agent:
         agent = Agent(
             name=name,
@@ -34,6 +36,8 @@ class CompanyState:
             owned_paths=owned_paths or [],
             x=x,
             y=y,
+            soul=soul,
+            program=program,
         )
         self.agents[agent.id] = agent
         return agent

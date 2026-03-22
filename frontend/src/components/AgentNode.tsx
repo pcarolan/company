@@ -74,11 +74,25 @@ export function AgentNode({ agent, selected, onSelect }: Props) {
       <div className="mt-2 flex gap-3 text-xs font-mono text-parchment-500">
         <span title="commits">↑{agent.commits}</span>
         <span title="reverts">↩{agent.reverts}</span>
+        {agent.cost_usd > 0 && (
+          <span title="cost" className="text-amber-600">
+            ${agent.cost_usd < 1 ? agent.cost_usd.toFixed(2) : agent.cost_usd.toFixed(0)}
+          </span>
+        )}
         {agent.branch && (
           <span title="branch" className="truncate text-blood-dim">
             ⎇ {agent.branch}
           </span>
         )}
+      </div>
+
+      {/* Identity indicators */}
+      <div className="mt-1 flex gap-1">
+        {agent.has_soul && <span className="text-xs opacity-60" title="has soul.md">🪬</span>}
+        {agent.has_program && <span className="text-xs opacity-60" title="has program.md">📋</span>}
+        {agent.has_memory && <span className="text-xs opacity-60" title="has memory.md">🧠</span>}
+        {agent.daily_note_count > 0 && <span className="text-xs opacity-60" title={`${agent.daily_note_count} daily notes`}>📝</span>}
+        {agent.session_id && <span className="text-xs" title="live session">🟢</span>}
       </div>
 
       {/* Scope */}
