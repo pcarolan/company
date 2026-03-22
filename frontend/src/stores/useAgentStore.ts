@@ -45,6 +45,7 @@ export interface ProjectNode {
   status: string
   repo: string | null
   branch: string | null
+  plan: string
   agent_ids: string[]
   task_ids: string[]
   x: number

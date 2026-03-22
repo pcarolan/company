@@ -39,6 +39,7 @@ class Project(BaseModel):
     height: float = 400.0
 
     # config
+    plan: str = ""  # the plan.md content — source of truth for tasks
     program_file: str = "program.md"
     gates: dict[str, str] = Field(default_factory=dict)  # gate_name: command
 
@@ -60,6 +61,7 @@ class Project(BaseModel):
             "y": self.y,
             "width": self.width,
             "height": self.height,
+            "plan": self.plan,
             "gates": self.gates,
             "program_file": self.program_file,
         }

@@ -37,7 +37,26 @@ app.include_router(ws_router)
 async def seed_demo_data():
     """Seed demo data so the canvas isn't empty on first load."""
 
-    # project
+    # project with plan
+    plan = """# company-app
+
+Build the infinite canvas app that is and represents the company.
+
+## P1
+- [ ] Set up auth module [auth-impl]
+- [ ] API route scaffolding [api-impl]
+- [ ] Write integration tests [test-agent]
+
+## P2
+- [ ] WebSocket real-time sync
+- [ ] Agent-to-agent messaging UI
+- [ ] Project sidebar drill-down
+
+## P3
+- [ ] Persistent storage (replace in-memory state)
+- [ ] Git integration for agent branches
+"""
+
     project = state.add_project(
         name="company-app",
         description="The infinite canvas app itself",
@@ -47,6 +66,7 @@ async def seed_demo_data():
         width=700,
         height=600,
     )
+    state.set_project_plan(project.id, plan)
 
     # agents
     a1 = state.add_agent("auth-impl", AgentRole.IMPLEMENTER, ["src/auth/"], x=-200, y=-100)
@@ -58,7 +78,5 @@ async def seed_demo_data():
     for a in [a1, a2, a3, a4]:
         state.assign_agent_to_project(project.id, a.id)
 
-    # tasks (belong to project)
-    state.add_task("Set up auth module", "JWT + refresh tokens", priority=1, x=-250, y=0, project_id=project.id)
-    state.add_task("API route scaffolding", "REST endpoints for agents and tasks", priority=1, x=250, y=0, project_id=project.id)
-    state.add_task("Write integration tests", "Test agent ↔ task lifecycle", priority=2, x=0, y=300, project_id=project.id)
+    # generate tasks from plan (auto-assigns where [agent-name] hints exist)
+    state.generate_tasks_from_plan(project.id)

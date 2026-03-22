@@ -93,6 +93,10 @@ class AssignToProjectRequest(BaseModel):
     id: str  # agent_id or task_id
 
 
+class SetPlanRequest(BaseModel):
+    plan: str
+
+
 # --- endpoints ---
 
 @router.get("/canvas")
@@ -269,6 +273,34 @@ def update_project_status(project_id: str, status: ProjectStatus):
     if not project:
         raise HTTPException(404, "Project not found")
     return project.to_canvas_node()
+
+
+@router.get("/projects/{project_id}/plan")
+def get_project_plan(project_id: str):
+    project = state.get_project(project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+    return {"plan": project.plan}
+
+
+@router.put("/projects/{project_id}/plan")
+def set_project_plan(project_id: str, req: SetPlanRequest):
+    project = state.set_project_plan(project_id, req.plan)
+    if not project:
+        raise HTTPException(404, "Project not found")
+    return project.to_canvas_node()
+
+
+@router.post("/projects/{project_id}/plan/generate-tasks")
+def generate_tasks_from_plan(project_id: str):
+    project = state.get_project(project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+    tasks = state.generate_tasks_from_plan(project_id)
+    return {
+        "generated": len(tasks),
+        "tasks": [t.model_dump(mode="json") for t in tasks],
+    }
 
 
 @router.post("/projects/{project_id}/agents")

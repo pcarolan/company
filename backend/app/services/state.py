@@ -220,6 +220,66 @@ class CompanyState:
             project.updated_at = datetime.now(timezone.utc)
         return project
 
+    def set_project_plan(self, project_id: str, plan: str) -> Project | None:
+        project = self.projects.get(project_id)
+        if project:
+            project.plan = plan
+            project.updated_at = datetime.now(timezone.utc)
+        return project
+
+    def generate_tasks_from_plan(self, project_id: str) -> list[Task]:
+        """Parse plan.md into tasks. Tasks are lines starting with '- [ ]' or '- '."""
+        project = self.projects.get(project_id)
+        if not project or not project.plan:
+            return []
+
+        new_tasks: list[Task] = []
+        lines = project.plan.strip().split("\n")
+
+        current_priority = 2
+        for line in lines:
+            stripped = line.strip()
+
+            # priority headers: ## P0, ## P1, etc.
+            if stripped.startswith("## P") and len(stripped) >= 5 and stripped[4].isdigit():
+                current_priority = int(stripped[4])
+                continue
+
+            # task lines: - [ ] or - (not sub-bullets)
+            task_title = None
+            if stripped.startswith("- [ ] "):
+                task_title = stripped[6:].strip()
+            elif stripped.startswith("- ") and not stripped.startswith("  -"):
+                # skip lines that look like descriptions (lowercase start after a task)
+                candidate = stripped[2:].strip()
+                if candidate and candidate[0].isupper():
+                    task_title = candidate
+
+            if task_title:
+                # check for agent assignment hint: [agent-name] at end
+                assigned_hint = None
+                if task_title.endswith("]") and "[" in task_title:
+                    bracket_start = task_title.rfind("[")
+                    assigned_hint = task_title[bracket_start + 1:-1].strip()
+                    task_title = task_title[:bracket_start].strip()
+
+                task = self.add_task(
+                    title=task_title,
+                    priority=current_priority,
+                    project_id=project_id,
+                )
+
+                # try to match assignment hint to an agent
+                if assigned_hint:
+                    for agent in self.agents.values():
+                        if agent.name == assigned_hint and agent.id in project.agent_ids:
+                            self.claim_task(task.id, agent.id)
+                            break
+
+                new_tasks.append(task)
+
+        return new_tasks
+
     def update_project_status(self, project_id: str, status: ProjectStatus) -> Project | None:
         project = self.projects.get(project_id)
         if project:
