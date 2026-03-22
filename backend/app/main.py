@@ -4,15 +4,18 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from .api.routes import router, set_state as set_routes_state
 from .api.websocket import ws_router, set_state as set_ws_state
 from .services import CompanyState
 from .models import AgentRole
 
-# find plan.md relative to the project root
+# find plan.md and frontend dist relative to the project root
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 PLAN_PATH = PROJECT_ROOT / "plan.md"
+FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
 
 app = FastAPI(
     title="Company",
@@ -37,6 +40,18 @@ set_ws_state(state)
 # register routes
 app.include_router(router)
 app.include_router(ws_router)
+
+# serve frontend static files (production build)
+if FRONTEND_DIST.exists():
+    app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")
+
+    @app.get("/{path:path}")
+    async def serve_frontend(path: str):
+        """Serve the React SPA for any non-API, non-WS route."""
+        file = FRONTEND_DIST / path
+        if file.exists() and file.is_file():
+            return FileResponse(str(file))
+        return FileResponse(str(FRONTEND_DIST / "index.html"))
 
 
 @app.on_event("startup")

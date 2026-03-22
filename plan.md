@@ -1,48 +1,54 @@
 # company
 
-An app that both IS and REPRESENTS an agent-powered company. Agents live on an infinite canvas. You see them work, talk, commit, revert, and ship. The human programs the organization — the agents execute.
+A single system for building software with agent teams. OpenClaw is the interface. The canvas is the visualization. plan.md is the control plane.
+
+You talk to it through OpenClaw. It shows you what's happening on the canvas. Agents are real — they run via OpenClaw's sessions_spawn, execute program.md workflows, and report back. The canvas renders their work in real time.
+
+One container. One system. The company app IS the company.
+
+## Architecture
+
+- **OpenClaw** — the agent runtime and human interface (chat, commands, cron)
+- **Backend (FastAPI)** — state management, WebSocket, agent orchestration
+- **Frontend (React)** — infinite canvas UI, served by the backend
+- **All in one Docker container** — OpenClaw + backend + frontend
+
+OpenClaw spawns agents. Agents execute program.md. The backend tracks state. The frontend renders the canvas. The human talks to OpenClaw and watches the canvas.
 
 ## P0
-- [ ] Backend API serves agents, tasks, projects, events via REST + WebSocket
-- [ ] Frontend renders infinite canvas with pan/zoom
-- [ ] Agent nodes show role, status, scope, commit/revert counts
-- [ ] Task nodes show priority, status, assignment
-- [ ] Project regions group agents and tasks visually on canvas
-- [ ] WebSocket syncs all state changes to connected clients in real time
-- [ ] Project sidebar lists projects, drills into plan/agents/tasks
+- [ ] Single Docker container runs OpenClaw + FastAPI + frontend
+- [ ] Backend serves the built frontend as static files
+- [ ] OpenClaw skill triggers agent spawning for projects
+- [ ] Agent lifecycle: spawn → claim task → enter loop → commit → report → next task
+- [ ] Canvas connects to backend WebSocket for real-time state
+- [ ] plan.md loaded from project repo, parsed into tasks on project create
 
 ## P1
-- [ ] Plan.md is the source of truth — generates tasks with priority and auto-assignment
-- [ ] Working indicator: pulsing dot + ring when agent status is working
-- [ ] Thinking bubble: shows what agent is currently doing
-- [ ] Agent-to-agent messaging: animated lines on canvas with message text, fades after 8s
-- [ ] Event feed: real-time stream of commits, reverts, gate results, messages
-- [ ] Agent detail sidebar: click agent on canvas to see full stats, scope, thinking, task
-- [ ] Seed data: demo project with agents and tasks generated from plan
+- [ ] OpenClaw command: "create project <name>" → creates project + repo + plan.md
+- [ ] OpenClaw command: "start project <name>" → spawns agents per plan, sets status active
+- [ ] OpenClaw command: "show me <project>" → opens canvas focused on that project
+- [ ] Agent reports: commits, reverts, gate results pushed to backend via internal API
+- [ ] Agent-to-agent messaging routed through OpenClaw sessions_send
+- [ ] Canvas auto-updates as agents work — no manual refresh
 
 ## P2
-- [ ] Persistent storage — replace in-memory state with SQLite or Postgres
-- [ ] Git integration — each agent gets a real branch, commits tracked from actual repos
-- [ ] Plan editor in sidebar — edit plan.md in-app, regenerate tasks on save
-- [ ] Drag agents and tasks on canvas — persist positions via WebSocket
-- [ ] Connection lines between agents in the same project (not just agent→task)
-- [ ] Gate runner — trigger project gates from the UI, show pass/fail per agent
-- [ ] Agent log panel — scrollable history of an agent's events/commits
+- [ ] Persistent storage — SQLite for state across restarts
+- [ ] Git integration — agents push to real repos, canvas shows branch/commit history
+- [ ] Plan editor — edit plan.md from the canvas sidebar, regenerate tasks
+- [ ] Gate runner — trigger gates from canvas, show pass/fail live
+- [ ] Agent program viewer — see an agent's program.md on the canvas
+- [ ] Drag to reposition agents/tasks on canvas
 
 ## P3
-- [ ] OpenClaw integration — spawn real agents via sessions_spawn, bind to canvas nodes
-- [ ] Agent program viewer — click agent to see its program.md in a panel
-- [ ] Multi-project canvas — multiple projects on one canvas, zoom to fit
-- [ ] Project timeline — horizontal time axis showing commits/events over time
-- [ ] Agent communication protocol — structured message types (request, response, handoff)
-- [ ] Role-based auto-layout — architect at top, implementers middle, tester bottom
-- [ ] Dark mode toggle (keep parchment as default)
+- [ ] Multi-project canvas — run multiple projects simultaneously
+- [ ] Timeline view — horizontal axis showing commits/events over time
+- [ ] Cost tracking — tokens used per agent, cost per project
+- [ ] Role-based auto-layout — architect top, implementers middle, tester bottom
+- [ ] Structured agent communication — request/response/handoff message types
 
 ## P4
-- [ ] Deploy to production — Docker compose for backend + frontend + OpenClaw
-- [ ] Auth — user accounts, project ownership, agent permissions
-- [ ] Multi-user canvas — multiple humans watching the same canvas in real time
-- [ ] Mobile layout — responsive canvas for tablet/phone
-- [ ] Plugin system — custom agent roles, custom event types, custom visualizations
-- [ ] Metrics dashboard — cost per agent, tokens used, commits/hour, success rate
-- [ ] Export — snapshot canvas as PNG/SVG, export plan + tasks as markdown
+- [ ] Multi-user — multiple humans watching the same canvas
+- [ ] Auth + permissions — who can create/start/stop projects
+- [ ] Mobile canvas — responsive for tablet
+- [ ] Plugin system — custom agent roles, custom visualizations
+- [ ] Export — canvas snapshot as PNG, plan + tasks as markdown report
