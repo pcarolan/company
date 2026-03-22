@@ -28,6 +28,9 @@ class Task(BaseModel):
     status: TaskStatus = TaskStatus.OPEN
     priority: int = 2  # 0=critical, 4=backlog
 
+    # ownership
+    project_id: Optional[str] = None
+
     # assignment
     assigned_agent_id: Optional[str] = None
     discovered_from: Optional[str] = None

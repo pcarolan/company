@@ -158,13 +158,15 @@ export function ProjectSidebar() {
 
           {/* Tasks */}
           <div className="px-4 py-3">
+            {(() => {
+              const projectTasks = tasks.filter((t) => t.project_id === selectedProject.id)
+              return (
+              <>
             <h3 className="font-typewriter text-xs text-parchment-500 mb-2">
-              tasks ({selectedProject.task_ids.length})
+              tasks ({projectTasks.length})
             </h3>
             <div className="space-y-1.5">
-              {selectedProject.task_ids.map((tid) => {
-                const task = tasks.find((t) => t.id === tid)
-                if (!task) return null
+              {projectTasks.map((task) => {
                 const priorityBorder = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS[2]
                 const assignedAgent = task.assigned_agent_id
                   ? agents.find((a) => a.id === task.assigned_agent_id)
@@ -199,6 +201,9 @@ export function ProjectSidebar() {
                 )
               })}
             </div>
+              </>
+              )
+            })()}
           </div>
         </div>
       ) : (

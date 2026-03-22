@@ -58,11 +58,7 @@ async def seed_demo_data():
     for a in [a1, a2, a3, a4]:
         state.assign_agent_to_project(project.id, a.id)
 
-    # tasks
-    t1 = state.add_task("Set up auth module", "JWT + refresh tokens", priority=1, x=-250, y=0)
-    t2 = state.add_task("API route scaffolding", "REST endpoints for agents and tasks", priority=1, x=250, y=0)
-    t3 = state.add_task("Write integration tests", "Test agent ↔ task lifecycle", priority=2, x=0, y=300)
-
-    # assign tasks to project
-    for t in [t1, t2, t3]:
-        state.assign_task_to_project(project.id, t.id)
+    # tasks (belong to project)
+    state.add_task("Set up auth module", "JWT + refresh tokens", priority=1, x=-250, y=0, project_id=project.id)
+    state.add_task("API route scaffolding", "REST endpoints for agents and tasks", priority=1, x=250, y=0, project_id=project.id)
+    state.add_task("Write integration tests", "Test agent ↔ task lifecycle", priority=2, x=0, y=300, project_id=project.id)

@@ -40,6 +40,7 @@ class CreateTaskRequest(BaseModel):
     x: float = 0.0
     y: float = 0.0
     discovered_from: Optional[str] = None
+    project_id: Optional[str] = None
 
 
 class ClaimTaskRequest(BaseModel):
@@ -155,8 +156,35 @@ def create_task(req: CreateTaskRequest):
         x=req.x,
         y=req.y,
         discovered_from=req.discovered_from,
+        project_id=req.project_id,
     )
     return task.model_dump(mode="json")
+
+
+@router.post("/projects/{project_id}/tasks/create")
+def create_task_in_project(project_id: str, req: CreateTaskRequest):
+    project = state.get_project(project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+    task = state.add_task(
+        title=req.title,
+        description=req.description,
+        priority=req.priority,
+        x=req.x,
+        y=req.y,
+        discovered_from=req.discovered_from,
+        project_id=project_id,
+    )
+    return task.model_dump(mode="json")
+
+
+@router.get("/projects/{project_id}/tasks")
+def list_project_tasks(project_id: str):
+    project = state.get_project(project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+    tasks = [state.tasks[tid] for tid in project.task_ids if tid in state.tasks]
+    return [t.model_dump(mode="json") for t in tasks]
 
 
 @router.post("/tasks/{task_id}/claim")

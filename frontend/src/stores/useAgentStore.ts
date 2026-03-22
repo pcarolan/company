@@ -32,6 +32,7 @@ export interface TaskNode {
   description: string
   status: string
   priority: number
+  project_id: string | null
   assigned_agent_id: string | null
   x: number
   y: number

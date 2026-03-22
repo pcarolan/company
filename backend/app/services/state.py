@@ -65,6 +65,7 @@ class CompanyState:
         x: float = 0.0,
         y: float = 0.0,
         discovered_from: str | None = None,
+        project_id: str | None = None,
     ) -> Task:
         task = Task(
             title=title,
@@ -73,8 +74,15 @@ class CompanyState:
             x=x,
             y=y,
             discovered_from=discovered_from,
+            project_id=project_id,
         )
         self.tasks[task.id] = task
+        # auto-register with project
+        if project_id and project_id in self.projects:
+            project = self.projects[project_id]
+            if task.id not in project.task_ids:
+                project.task_ids.append(task.id)
+                project.updated_at = datetime.now(timezone.utc)
         return task
 
     def claim_task(self, task_id: str, agent_id: str) -> Optional[Task]:
