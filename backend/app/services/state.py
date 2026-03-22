@@ -344,7 +344,8 @@ class CompanyState:
         return plan
 
     def generate_tasks_from_plan_obj(self, plan_id: str) -> list[Task]:
-        """Generate tasks from a specific plan."""
+        """Generate tasks from a plan. Idempotent — skips tasks that already exist
+        (matched by title within the same plan), regardless of status."""
         plan = self.plans.get(plan_id)
         if not plan:
             return []
@@ -352,6 +353,13 @@ class CompanyState:
         project = self.projects.get(plan.project_id)
         if not project:
             return []
+
+        # Build set of existing task titles for this plan (any status including done)
+        existing_titles: set[str] = set()
+        for tid in plan.task_ids:
+            task = self.tasks.get(tid)
+            if task:
+                existing_titles.add(task.title.lower().strip())
 
         new_tasks: list[Task] = []
         lines = plan.content.strip().split("\n")
@@ -367,6 +375,9 @@ class CompanyState:
             task_title = None
             if stripped.startswith("- [ ] "):
                 task_title = stripped[6:].strip()
+            elif stripped.startswith("- [x] ") or stripped.startswith("- [X] "):
+                # Checked items — skip, already done
+                continue
             elif stripped.startswith("- ") and not stripped.startswith("  -"):
                 candidate = stripped[2:].strip()
                 if candidate and candidate[0].isupper():
@@ -378,6 +389,10 @@ class CompanyState:
                     bracket_start = task_title.rfind("[")
                     assigned_hint = task_title[bracket_start + 1:-1].strip()
                     task_title = task_title[:bracket_start].strip()
+
+                # Skip if task already exists in this plan
+                if task_title.lower().strip() in existing_titles:
+                    continue
 
                 task = self.add_task(
                     title=task_title,
@@ -405,10 +420,18 @@ class CompanyState:
         return project
 
     def generate_tasks_from_plan(self, project_id: str) -> list[Task]:
-        """Parse plan.md into tasks. Tasks are lines starting with '- [ ]' or '- '."""
+        """Parse plan.md into tasks. Idempotent — skips tasks that already exist
+        (matched by title within the same project), regardless of status."""
         project = self.projects.get(project_id)
         if not project or not project.plan:
             return []
+
+        # Build set of existing task titles for this project
+        existing_titles: set[str] = set()
+        for tid in project.task_ids:
+            task = self.tasks.get(tid)
+            if task:
+                existing_titles.add(task.title.lower().strip())
 
         new_tasks: list[Task] = []
         lines = project.plan.strip().split("\n")
@@ -417,28 +440,29 @@ class CompanyState:
         for line in lines:
             stripped = line.strip()
 
-            # priority headers: ## P0, ## P1, etc.
             if stripped.startswith("## P") and len(stripped) >= 5 and stripped[4].isdigit():
                 current_priority = int(stripped[4])
                 continue
 
-            # task lines: - [ ] or - (not sub-bullets)
             task_title = None
             if stripped.startswith("- [ ] "):
                 task_title = stripped[6:].strip()
+            elif stripped.startswith("- [x] ") or stripped.startswith("- [X] "):
+                continue
             elif stripped.startswith("- ") and not stripped.startswith("  -"):
-                # skip lines that look like descriptions (lowercase start after a task)
                 candidate = stripped[2:].strip()
                 if candidate and candidate[0].isupper():
                     task_title = candidate
 
             if task_title:
-                # check for agent assignment hint: [agent-name] at end
                 assigned_hint = None
                 if task_title.endswith("]") and "[" in task_title:
                     bracket_start = task_title.rfind("[")
                     assigned_hint = task_title[bracket_start + 1:-1].strip()
                     task_title = task_title[:bracket_start].strip()
+
+                if task_title.lower().strip() in existing_titles:
+                    continue
 
                 task = self.add_task(
                     title=task_title,
@@ -446,7 +470,6 @@ class CompanyState:
                     project_id=project_id,
                 )
 
-                # try to match assignment hint to an agent
                 if assigned_hint:
                     for agent in self.agents.values():
                         if agent.name == assigned_hint and agent.id in project.agent_ids:
