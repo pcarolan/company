@@ -407,6 +407,23 @@ def set_project_plan(project_id: str, req: SetPlanRequest):
     return project.to_canvas_node()
 
 
+@router.get("/projects/{project_id}/program")
+def get_project_program(project_id: str):
+    project = state.get_project(project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+    return {"content": project.base_program}
+
+
+@router.put("/projects/{project_id}/program")
+def set_project_program(project_id: str, req: SetPlanRequest):
+    project = state.get_project(project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+    project.base_program = req.plan  # reusing SetPlanRequest for content
+    return project.to_canvas_node()
+
+
 @router.post("/projects/{project_id}/plan/generate-tasks")
 def generate_tasks_from_plan(project_id: str):
     project = state.get_project(project_id)

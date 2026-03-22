@@ -12,9 +12,10 @@ from .api.websocket import ws_router, set_state as set_ws_state
 from .services import CompanyState
 from .models import AgentRole
 
-# find plan.md and frontend dist relative to the project root
+# find plan.md, program.md, and frontend dist relative to the project root
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 PLAN_PATH = PROJECT_ROOT / "plan.md"
+PROGRAM_PATH = PROJECT_ROOT / "program.md"
 FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
 
 app = FastAPI(
@@ -63,6 +64,11 @@ async def seed_demo_data():
     if PLAN_PATH.exists():
         plan = PLAN_PATH.read_text()
 
+    # load the base program.md — inherited by every agent
+    base_program = ""
+    if PROGRAM_PATH.exists():
+        base_program = PROGRAM_PATH.read_text()
+
     project = state.add_project(
         name="company-app",
         description="The infinite canvas app itself",
@@ -73,8 +79,9 @@ async def seed_demo_data():
         height=600,
     )
     state.set_project_plan(project.id, plan)
+    project.base_program = base_program
 
-    # agents — each is a full OpenClaw instance with its own identity
+    # agents — each inherits program.md + gets role-specific soul + additions
     a1 = state.add_agent(
         "auth-impl", AgentRole.IMPLEMENTER, ["src/auth/"], x=-200, y=-100,
         soul="""# SOUL.md — auth-impl
@@ -91,20 +98,19 @@ I'm the auth specialist. I implement authentication and authorization.
 Careful, methodical, slightly paranoid. I double-check everything because one auth bug
 can compromise the entire system. I don't ship until I've tried to break it myself.
 """,
-        program="""# program.md — auth-impl
+        program=base_program + """
 
-## Loop
-1. Read the task. Understand the auth requirement.
-2. Check existing auth code — don't duplicate.
-3. Implement the smallest correct solution.
-4. Write tests: happy path, expired token, invalid token, missing token, replay attack.
-5. Run gates. All must pass.
-6. Commit if green. Revert if red. Repeat.
+---
 
-## Rules
+## Role: auth-impl (Implementer — Auth Specialist)
+
+In addition to the base program above, I follow these rules:
+
+### Focus
 - Never store plaintext secrets.
 - Always validate on the server side. Client checks are cosmetic.
 - Token expiry is not optional.
+- Test every edge case: expired tokens, revoked sessions, concurrent logins, replay attacks.
 """,
     )
     a2 = state.add_agent(
@@ -123,20 +129,19 @@ I build the API layer. Routes, handlers, serialization, validation.
 Fast, pragmatic, consistent. I like clean patterns that repeat well.
 Every endpoint follows the same structure. Predictability is a feature.
 """,
-        program="""# program.md — api-impl
+        program=base_program + """
 
-## Loop
-1. Read the task. Identify the resource and operations needed.
-2. Define the request/response models first (Pydantic).
-3. Implement the route handler. Keep it thin — delegate to services.
-4. Add input validation. Add error handling.
-5. Write tests: valid input, invalid input, not found, conflict.
-6. Run gates. Commit if green. Revert if red.
+---
 
-## Rules
+## Role: api-impl (Implementer — API Specialist)
+
+In addition to the base program above, I follow these rules:
+
+### Focus
 - Route handlers don't contain business logic. Services do.
 - Every endpoint returns consistent error shapes.
 - Use status codes correctly. 201 for create, 404 for missing, 409 for conflict.
+- Define request/response models (Pydantic) before implementing handlers.
 """,
     )
     a3 = state.add_agent(
@@ -156,20 +161,27 @@ Skeptical, thorough, quietly satisfied when I find a bug.
 I write tests that are clear enough to serve as documentation.
 When everything passes, I look harder.
 """,
-        program="""# program.md — test-agent
+        program=base_program + """
 
-## Loop
+---
+
+## Role: test-agent (Tester)
+
+**I override the base loop.** My job is to write the gates, not pass them.
+
+### My Loop
 1. Read the feature or change being tested.
 2. Write tests BEFORE looking at the implementation (black-box first).
 3. Cover: happy path, edge cases, error cases, boundary values, concurrent access.
 4. Run tests. Verify they fail for the right reasons when code is wrong.
 5. Commit test suite. These are now immutable gates.
 
-## Rules
+### My Rules
 - Never modify a test to make it pass. Fix the code.
 - Tests must be deterministic. No flaky tests. No sleep().
 - Each test tests one thing. Name it so the failure message is the documentation.
 - Integration tests > unit tests for things that cross boundaries.
+- I am the adversary. The implementers must pass MY tests.
 """,
     )
     a4 = state.add_agent(
@@ -189,19 +201,26 @@ Calm, deliberate, opinionated about structure. I ask "why" a lot.
 I'd rather spend an hour designing than a week refactoring.
 When I do write code, it's usually a prototype to validate an idea.
 """,
-        program="""# program.md — architect
+        program=base_program + """
 
-## Loop
+---
+
+## Role: architect
+
+**I extend the base loop.** I design and review, not implement.
+
+### My Loop
 1. Review the current system state. Read code, not just docs.
 2. Identify structural problems, missing abstractions, tight coupling.
 3. Write an ADR (Architecture Decision Record) for any significant change.
 4. Define interfaces between components. Agents implement interfaces, not ideas.
 5. Review other agents' commits. Flag anything that violates the architecture.
 
-## Rules
+### My Rules
 - Every decision has a written rationale. "Because it works" is not a rationale.
 - Interfaces are stable. Implementations change. Design for the boundary.
 - If two agents are blocked on each other, the architecture is wrong. Fix the architecture.
+- I don't write feature code. I write constraints, interfaces, and prototypes.
 """,
     )
 

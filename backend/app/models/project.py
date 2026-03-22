@@ -40,6 +40,7 @@ class Project(BaseModel):
 
     # config
     plan: str = ""  # the plan.md content — source of truth for tasks
+    base_program: str = ""  # program.md — inherited by every agent in this project
     program_file: str = "program.md"
     gates: dict[str, str] = Field(default_factory=dict)  # gate_name: command
 
@@ -68,6 +69,7 @@ class Project(BaseModel):
             "width": self.width,
             "height": self.height,
             "plan": self.plan,
+            "has_base_program": bool(self.base_program),
             "gates": self.gates,
             "program_file": self.program_file,
             "cost_usd": self.cost_usd,

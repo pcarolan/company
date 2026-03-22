@@ -71,6 +71,7 @@ export interface ProjectNode {
   y: number
   width: number
   height: number
+  has_base_program: boolean
   gates: Record<string, string>
   program_file: string
   cost_usd: number
