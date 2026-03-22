@@ -1,4 +1,4 @@
-import { TaskNode as TaskData } from '../stores/useAgentStore'
+import { useAgentStore, TaskNode as TaskData } from '../stores/useAgentStore'
 import { PRIORITY_COLORS } from '../theme/colors'
 
 interface Props {
@@ -7,14 +7,19 @@ interface Props {
 
 export function TaskNode({ task }: Props) {
   const priorityColor = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS[2]
+  const selectedTaskId = useAgentStore((s) => s.selectedTaskId)
+  const selectTask = useAgentStore((s) => s.selectTask)
+  const isSelected = selectedTaskId === task.id
 
   return (
     <div
+      onClick={(e) => { e.stopPropagation(); selectTask(task.id) }}
       className={`
-        absolute select-none
+        absolute select-none cursor-pointer
         w-40 rounded border border-parchment-300 border-l-4 ${priorityColor}
         bg-parchment-50 p-2.5
-        shadow-sm
+        transition-all duration-150
+        ${isSelected ? 'ring-2 ring-blood shadow-md' : 'shadow-sm hover:shadow-md'}
       `}
       style={{
         left: task.x,

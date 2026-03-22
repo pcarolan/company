@@ -32,6 +32,7 @@ export function ProjectSidebar() {
   const tasks = useAgentStore((s) => s.tasks)
   const selectedProjectId = useAgentStore((s) => s.selectedProjectId)
   const selectProject = useAgentStore((s) => s.selectProject)
+  const selectTask = useAgentStore((s) => s.selectTask)
   const [activeTab, setActiveTab] = useState<Tab>('plan')
   const plans = useAgentStore((s) => s.plans)
   const [width, setWidth] = useState(288) // 18rem = 288px
@@ -649,9 +650,10 @@ export function ProjectSidebar() {
                       return (
                         <div
                           key={task.id}
+                          onClick={() => selectTask(task.id)}
                           className={`
                             px-2 py-1.5 rounded border border-parchment-300 border-l-4 ${priorityBorder}
-                            bg-parchment-50
+                            bg-parchment-50 cursor-pointer hover:bg-parchment-100 transition-colors
                           `}
                         >
                           <div className="text-xs font-semibold text-parchment-800 truncate">

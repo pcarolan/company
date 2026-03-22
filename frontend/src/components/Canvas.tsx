@@ -5,6 +5,7 @@ import { AgentNode } from './AgentNode'
 import { TaskNode } from './TaskNode'
 import { MessageLine } from './MessageLine'
 import { ProjectRegion } from './ProjectRegion'
+import { TaskDetailPanel } from './TaskDetailPanel'
 
 export function Canvas() {
   const { offsetX, offsetY, zoom, startDrag, drag, endDrag, zoomBy } = useCanvasStore()
@@ -13,7 +14,9 @@ export function Canvas() {
   const projects = useAgentStore((s) => s.projects)
   const messages = useAgentStore((s) => s.messages)
   const selectedId = useAgentStore((s) => s.selectedId)
+  const selectedTaskId = useAgentStore((s) => s.selectedTaskId)
   const select = useAgentStore((s) => s.select)
+  const selectTask = useAgentStore((s) => s.selectTask)
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 0) startDrag(e.clientX, e.clientY)
@@ -38,7 +41,7 @@ export function Canvas() {
       onMouseUp={endDrag}
       onMouseLeave={endDrag}
       onWheel={handleWheel}
-      onClick={() => select(null)}
+      onClick={() => { select(null); selectTask(null) }}
     >
       {/* Grid dots */}
       <div
@@ -108,6 +111,9 @@ export function Canvas() {
           />
         ))}
       </div>
+
+      {/* Task detail panel */}
+      {selectedTaskId && !selectedId && <TaskDetailPanel />}
 
       {/* HUD — top center */}
       <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 text-center">

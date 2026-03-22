@@ -1,0 +1,122 @@
+import { useAgentStore } from '../stores/useAgentStore'
+import { PRIORITY_COLORS } from '../theme/colors'
+
+const PRIORITY_LABELS: Record<number, string> = {
+  0: 'P0 · critical',
+  1: 'P1 · high',
+  2: 'P2 · medium',
+  3: 'P3 · low',
+  4: 'P4 · backlog',
+}
+
+const STATUS_STYLES: Record<string, string> = {
+  open: 'bg-parchment-200 text-parchment-600',
+  claimed: 'bg-blood/10 text-blood',
+  in_progress: 'bg-blood/10 text-blood',
+  blocked: 'bg-red-100 text-red-700',
+  done: 'bg-green-100 text-green-700',
+  discarded: 'bg-parchment-100 text-parchment-400',
+}
+
+export function TaskDetailPanel() {
+  const tasks = useAgentStore((s) => s.tasks)
+  const agents = useAgentStore((s) => s.agents)
+  const projects = useAgentStore((s) => s.projects)
+  const selectedTaskId = useAgentStore((s) => s.selectedTaskId)
+  const selectTask = useAgentStore((s) => s.selectTask)
+
+  const task = tasks.find((t) => t.id === selectedTaskId)
+  if (!task) return null
+
+  const assignedAgent = task.assigned_agent_id
+    ? agents.find((a) => a.id === task.assigned_agent_id)
+    : null
+  const project = task.project_id
+    ? projects.find((p) => p.id === task.project_id)
+    : null
+  const priorityLabel = PRIORITY_LABELS[task.priority] || `P${task.priority}`
+  const priorityBorder = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS[2]
+  const statusStyle = STATUS_STYLES[task.status] || STATUS_STYLES.open
+
+  return (
+    <div className="
+      fixed top-0 right-0 w-80 h-full
+      bg-parchment-50/95 backdrop-blur-sm
+      border-l border-parchment-300
+      z-50 flex flex-col
+    ">
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-parchment-300 flex items-center justify-between">
+        <h2 className="font-typewriter text-sm text-parchment-600">task</h2>
+        <button
+          onClick={() => selectTask(null)}
+          className="text-parchment-400 hover:text-parchment-700 text-lg px-1"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4">
+        {/* Title */}
+        <div className={`border-l-4 ${priorityBorder} pl-3 mb-4`}>
+          <h3 className="font-typewriter text-base font-bold text-parchment-800 leading-tight">
+            {task.title}
+          </h3>
+        </div>
+
+        {/* Status + Priority */}
+        <div className="flex items-center gap-2 mb-4">
+          <span className={`text-xs font-mono px-2 py-0.5 rounded ${statusStyle}`}>
+            {task.status}
+          </span>
+          <span className="text-xs font-mono text-parchment-500">
+            {priorityLabel}
+          </span>
+        </div>
+
+        {/* Description */}
+        {task.description && (
+          <div className="mb-4">
+            <h4 className="font-typewriter text-xs text-parchment-500 mb-1">description</h4>
+            <p className="text-sm text-parchment-700 leading-relaxed">
+              {task.description}
+            </p>
+          </div>
+        )}
+
+        {/* Assignment */}
+        <div className="mb-4">
+          <h4 className="font-typewriter text-xs text-parchment-500 mb-1">assigned to</h4>
+          {assignedAgent ? (
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-sm text-parchment-800">{assignedAgent.name}</span>
+              <span className="text-xs font-mono text-parchment-400">{assignedAgent.role}</span>
+              {assignedAgent.status === 'working' && assignedAgent.current_task_id === task.id && (
+                <svg className="animate-spin h-3 w-3 text-blood/50" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                  <path className="opacity-60" d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+              )}
+            </div>
+          ) : (
+            <span className="text-xs font-mono text-parchment-400 italic">unassigned</span>
+          )}
+        </div>
+
+        {/* Project */}
+        {project && (
+          <div className="mb-4">
+            <h4 className="font-typewriter text-xs text-parchment-500 mb-1">project</h4>
+            <span className="font-mono text-sm text-parchment-800">{project.name}</span>
+          </div>
+        )}
+
+        {/* ID */}
+        <div className="mb-4">
+          <h4 className="font-typewriter text-xs text-parchment-500 mb-1">id</h4>
+          <span className="font-mono text-xs text-parchment-400">{task.id}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
