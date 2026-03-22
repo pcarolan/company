@@ -102,6 +102,35 @@ class CompanyState:
             self._emit(EventType.TASK_CLAIMED, agent_id, task_id, f"{agent.name} claimed '{task.title}'")
         return task
 
+    def delete_task(self, task_id: str) -> bool:
+        task = self.tasks.get(task_id)
+        if not task:
+            return False
+
+        # unassign from agent
+        if task.assigned_agent_id:
+            agent = self.agents.get(task.assigned_agent_id)
+            if agent and agent.current_task_id == task_id:
+                agent.current_task_id = None
+                if agent.status == AgentStatus.WORKING:
+                    agent.status = AgentStatus.IDLE
+
+        # remove from project
+        if task.project_id:
+            project = self.projects.get(task.project_id)
+            if project and task_id in project.task_ids:
+                project.task_ids.remove(task_id)
+                project.updated_at = datetime.now(timezone.utc)
+
+        # remove from any plans
+        for plan in self.plans.values():
+            if task_id in plan.task_ids:
+                plan.task_ids.remove(task_id)
+                plan.updated_at = datetime.now(timezone.utc)
+
+        del self.tasks[task_id]
+        return True
+
     def close_task(self, task_id: str, reason: str = "") -> Optional[Task]:
         task = self.tasks.get(task_id)
         if task:

@@ -116,6 +116,21 @@ export function TaskDetailPanel() {
           <h4 className="font-typewriter text-xs text-parchment-500 mb-1">id</h4>
           <span className="font-mono text-xs text-parchment-400">{task.id}</span>
         </div>
+
+        {/* Delete */}
+        <div className="pt-3 border-t border-parchment-200">
+          <button
+            onClick={async () => {
+              await fetch(`/api/tasks/${task.id}`, { method: 'DELETE' })
+              selectTask(null)
+            }}
+            className="text-xs font-mono px-3 py-1 rounded
+              text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300
+              transition-colors"
+          >
+            delete task
+          </button>
+        </div>
       </div>
     </div>
   )

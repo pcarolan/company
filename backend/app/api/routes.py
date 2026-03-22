@@ -333,6 +333,13 @@ def list_project_tasks(project_id: str):
     return [t.model_dump(mode="json") for t in tasks]
 
 
+@router.delete("/tasks/{task_id}")
+def delete_task(task_id: str):
+    if not state.delete_task(task_id):
+        raise HTTPException(404, "Task not found")
+    return {"ok": True}
+
+
 @router.post("/tasks/{task_id}/claim")
 def claim_task(task_id: str, req: ClaimTaskRequest):
     task = state.claim_task(task_id, req.agent_id)
