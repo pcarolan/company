@@ -327,6 +327,21 @@ class CompanyState:
             project.updated_at = datetime.now(timezone.utc)
         return project
 
+    # --- broadcast ---
+
+    async def broadcast_canvas(self) -> None:
+        """Push full canvas state to all connected WebSocket clients."""
+        import json
+        data = json.dumps({"type": "canvas_update", "data": self.get_canvas_state()})
+        dead = []
+        for ws in self._ws_connections:
+            try:
+                await ws.send_text(data)
+            except Exception:
+                dead.append(ws)
+        for ws in dead:
+            self._ws_connections.remove(ws)
+
     # --- canvas state ---
 
     def get_canvas_state(self) -> dict:

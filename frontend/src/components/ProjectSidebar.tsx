@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useAgentStore, type AgentNode } from '../stores/useAgentStore'
 import { ROLE_ICONS, STATUS_COLORS, PRIORITY_COLORS } from '../theme/colors'
 
@@ -33,6 +33,25 @@ export function ProjectSidebar() {
   const selectedProjectId = useAgentStore((s) => s.selectedProjectId)
   const selectProject = useAgentStore((s) => s.selectProject)
   const [activeTab, setActiveTab] = useState<Tab>('plan')
+  const [runLoading, setRunLoading] = useState(false)
+
+  const handleRun = useCallback(async (projectId: string) => {
+    setRunLoading(true)
+    try {
+      await fetch(`/api/projects/${projectId}/run`, { method: 'POST' })
+    } catch (e) {
+      console.error('Failed to start project', e)
+    }
+    setRunLoading(false)
+  }, [])
+
+  const handleStop = useCallback(async (projectId: string) => {
+    try {
+      await fetch(`/api/projects/${projectId}/stop`, { method: 'POST' })
+    } catch (e) {
+      console.error('Failed to stop project', e)
+    }
+  }, [])
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId)
 
@@ -127,6 +146,43 @@ export function ProjectSidebar() {
             ) : (
               <span className="text-xs font-mono text-parchment-400 italic">no repo</span>
             )}
+
+            {/* Run / Stop button */}
+            <div className="mt-2">
+              {selectedProject.status === 'active' ? (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleStop(selectedProject.id) }}
+                  className="
+                    w-full py-2 rounded font-typewriter text-sm
+                    bg-parchment-200 text-parchment-700 border border-parchment-300
+                    hover:bg-parchment-300 transition-colors
+                    flex items-center justify-center gap-2
+                  "
+                >
+                  <span>■</span> stop
+                </button>
+              ) : (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleRun(selectedProject.id) }}
+                  disabled={runLoading}
+                  className="
+                    w-full py-2 rounded font-typewriter text-sm
+                    bg-blood text-white border border-blood
+                    hover:bg-blood/80 transition-colors
+                    disabled:opacity-50
+                    flex items-center justify-center gap-2
+                  "
+                >
+                  {runLoading ? (
+                    <span className="animate-pulse">starting...</span>
+                  ) : (
+                    <>
+                      <span>▶</span> run project
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Tabs */}

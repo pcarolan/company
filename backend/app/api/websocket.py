@@ -39,6 +39,9 @@ async def canvas_ws(websocket: WebSocket):
     await websocket.accept()
     connections.append(websocket)
 
+    # also register with state for broadcast_canvas()
+    state._ws_connections.append(websocket)
+
     # send initial state
     await websocket.send_json({
         "type": "init",
@@ -53,6 +56,8 @@ async def canvas_ws(websocket: WebSocket):
     except WebSocketDisconnect:
         if websocket in connections:
             connections.remove(websocket)
+        if websocket in state._ws_connections:
+            state._ws_connections.remove(websocket)
 
 
 async def handle_client_message(msg: dict, ws: WebSocket) -> None:

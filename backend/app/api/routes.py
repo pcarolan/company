@@ -6,17 +6,20 @@ from typing import Optional
 
 from ..models import AgentRole, AgentStatus, ProjectStatus
 from ..services import CompanyState, GitService
+from ..services.orchestrator import Orchestrator
 
 router = APIRouter(prefix="/api")
 
 # shared state — injected from main
 state: CompanyState = CompanyState()
 git: GitService = GitService()
+orchestrator: Orchestrator = Orchestrator(state)
 
 
 def set_state(s: CompanyState) -> None:
-    global state
+    global state, orchestrator
     state = s
+    orchestrator = Orchestrator(s)
 
 
 def set_git(g: GitService) -> None:
@@ -497,6 +500,53 @@ def generate_tasks_from_plan(project_id: str):
     return {
         "generated": len(tasks),
         "tasks": [t.model_dump(mode="json") for t in tasks],
+    }
+
+
+@router.post("/projects/{project_id}/run")
+async def run_project(project_id: str):
+    """Start executing a project — dispatches tasks to agents."""
+    project = state.get_project(project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+    if orchestrator.is_running(project_id):
+        raise HTTPException(409, "Project is already running")
+
+    # generate tasks from plan if none exist
+    project_tasks = [
+        state.tasks[tid]
+        for tid in project.task_ids
+        if tid in state.tasks
+    ]
+    if not project_tasks and project.plan:
+        state.generate_tasks_from_plan(project_id)
+
+    await orchestrator.run_project(project_id)
+    return {"status": "running", "project": project.to_canvas_node()}
+
+
+@router.post("/projects/{project_id}/stop")
+async def stop_project(project_id: str):
+    """Stop a running project."""
+    project = state.get_project(project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+    if not orchestrator.is_running(project_id):
+        raise HTTPException(409, "Project is not running")
+
+    await orchestrator.stop_project(project_id)
+    return {"status": "stopped", "project": project.to_canvas_node()}
+
+
+@router.get("/projects/{project_id}/status")
+def get_project_run_status(project_id: str):
+    """Check if a project is running."""
+    project = state.get_project(project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+    return {
+        "running": orchestrator.is_running(project_id),
+        "status": project.status.value,
     }
 
 
