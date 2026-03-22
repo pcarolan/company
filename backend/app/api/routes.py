@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 
-from ..models import AgentRole, AgentStatus, ProjectStatus
+from ..models import AgentRole, AgentStatus, ProjectStatus, PlanStatus
 from ..services import CompanyState, GitService
 from ..services.orchestrator import Orchestrator
 
@@ -118,6 +118,19 @@ class AssignToProjectRequest(BaseModel):
 
 class SetPlanRequest(BaseModel):
     plan: str
+
+
+class CreatePlanRequest(BaseModel):
+    name: str
+    content: str = ""
+
+
+class UpdatePlanContentRequest(BaseModel):
+    content: str
+
+
+class UpdatePlanStatusRequest(BaseModel):
+    status: PlanStatus
 
 
 class RecordCostRequest(BaseModel):
@@ -489,6 +502,63 @@ def set_project_program(project_id: str, req: SetPlanRequest):
         raise HTTPException(404, "Project not found")
     project.base_program = req.plan  # reusing SetPlanRequest for content
     return project.to_canvas_node()
+
+
+@router.get("/projects/{project_id}/plans")
+def list_project_plans(project_id: str):
+    project = state.get_project(project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+    plans = [state.plans[pid] for pid in project.plan_ids if pid in state.plans]
+    return [p.to_dict() for p in plans]
+
+
+@router.post("/projects/{project_id}/plans")
+def create_plan(project_id: str, req: CreatePlanRequest):
+    plan = state.add_plan(
+        project_id=project_id,
+        name=req.name,
+        content=req.content,
+    )
+    if not plan:
+        raise HTTPException(404, "Project not found")
+    return plan.to_dict()
+
+
+@router.get("/plans/{plan_id}")
+def get_plan(plan_id: str):
+    plan = state.get_plan(plan_id)
+    if not plan:
+        raise HTTPException(404, "Plan not found")
+    return plan.to_dict()
+
+
+@router.put("/plans/{plan_id}/content")
+def update_plan_content(plan_id: str, req: UpdatePlanContentRequest):
+    plan = state.update_plan_content(plan_id, req.content)
+    if not plan:
+        raise HTTPException(404, "Plan not found")
+    return plan.to_dict()
+
+
+@router.put("/plans/{plan_id}/status")
+def update_plan_status(plan_id: str, req: UpdatePlanStatusRequest):
+    plan = state.update_plan_status(plan_id, req.status)
+    if not plan:
+        raise HTTPException(404, "Plan not found")
+    return plan.to_dict()
+
+
+@router.post("/plans/{plan_id}/generate-tasks")
+def generate_tasks_from_plan_obj(plan_id: str):
+    plan = state.get_plan(plan_id)
+    if not plan:
+        raise HTTPException(404, "Plan not found")
+    tasks = state.generate_tasks_from_plan_obj(plan_id)
+    return {
+        "generated": len(tasks),
+        "tasks": [t.model_dump(mode="json") for t in tasks],
+    }
 
 
 @router.post("/projects/{project_id}/plan/generate-tasks")

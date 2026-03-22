@@ -16,6 +16,7 @@ export const ROLE_ICONS: Record<string, string> = {
   reviewer: '👁',
   integrator: '🔀',
   scout: '🔭',
+  planner: '📝',
 }
 
 export const PRIORITY_COLORS: Record<number, string> = {

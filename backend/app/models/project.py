@@ -39,7 +39,9 @@ class Project(BaseModel):
     height: float = 400.0
 
     # config
-    plan: str = ""  # the plan.md content — source of truth for tasks
+    plan: str = ""  # legacy — kept for backward compat, mirrors active plan content
+    plan_ids: list[str] = Field(default_factory=list)  # all plans for this project
+    active_plan_id: Optional[str] = None  # currently executing plan
     base_program: str = ""  # program.md — inherited by every agent in this project
     program_file: str = "program.md"
     gates: dict[str, str] = Field(default_factory=dict)  # gate_name: command
@@ -69,6 +71,8 @@ class Project(BaseModel):
             "width": self.width,
             "height": self.height,
             "plan": self.plan,
+            "plan_ids": self.plan_ids,
+            "active_plan_id": self.active_plan_id,
             "has_base_program": bool(self.base_program),
             "gates": self.gates,
             "program_file": self.program_file,

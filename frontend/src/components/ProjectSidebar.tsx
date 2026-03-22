@@ -33,10 +33,13 @@ export function ProjectSidebar() {
   const selectedProjectId = useAgentStore((s) => s.selectedProjectId)
   const selectProject = useAgentStore((s) => s.selectProject)
   const [activeTab, setActiveTab] = useState<Tab>('plan')
+  const plans = useAgentStore((s) => s.plans)
   const [runLoading, setRunLoading] = useState(false)
-  const [editingPlan, setEditingPlan] = useState(false)
+  const [editingPlanId, setEditingPlanId] = useState<string | null>(null)
   const [planDraft, setPlanDraft] = useState('')
   const [savingPlan, setSavingPlan] = useState(false)
+  const [creatingPlan, setCreatingPlan] = useState(false)
+  const [newPlanName, setNewPlanName] = useState('')
 
   const handleRun = useCallback(async (projectId: string) => {
     setRunLoading(true)
@@ -265,75 +268,245 @@ export function ProjectSidebar() {
                   })()}
                 </div>
 
-                {editingPlan ? (
-                  <div className="space-y-2">
-                    <textarea
-                      value={planDraft}
-                      onChange={(e) => setPlanDraft(e.target.value)}
-                      className="
-                        w-full min-h-[300px] font-mono text-xs text-parchment-800
-                        bg-white/80 border border-parchment-300 rounded p-3 resize-y
-                        focus:outline-none focus:border-blood/50
-                      "
-                      spellCheck={false}
-                    />
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => setEditingPlan(false)}
-                        className="text-xs font-mono px-3 py-1 rounded
-                          bg-parchment-200 text-parchment-600 hover:bg-parchment-300"
-                      >
-                        cancel
-                      </button>
-                      <button
-                        onClick={async () => {
-                          setSavingPlan(true)
-                          await fetch(`/api/projects/${selectedProject.id}/plan`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ plan: planDraft }),
-                          })
-                          setSavingPlan(false)
-                          setEditingPlan(false)
-                        }}
-                        disabled={savingPlan}
-                        className="text-xs font-mono px-3 py-1 rounded
-                          bg-blood text-white hover:bg-blood/80 disabled:opacity-50"
-                      >
-                        {savingPlan ? 'saving...' : 'save plan'}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="group relative">
-                    {selectedProject.plan ? (
-                      <pre
-                        className="text-xs font-mono text-parchment-700 whitespace-pre-wrap leading-relaxed cursor-pointer hover:bg-parchment-100 rounded p-1 -m-1 transition-colors"
-                        onClick={() => { setPlanDraft(selectedProject.plan); setEditingPlan(true) }}
-                      >
-                        {selectedProject.plan}
-                      </pre>
-                    ) : (
-                      <p
-                        className="text-xs font-mono text-parchment-400 italic cursor-pointer hover:text-parchment-600"
-                        onClick={() => { setPlanDraft(''); setEditingPlan(true) }}
-                      >
-                        click to write a plan
-                      </p>
-                    )}
+                {/* Plans list */}
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-typewriter text-xs text-parchment-500">plans</h3>
                     <button
-                      onClick={() => { setPlanDraft(selectedProject.plan || ''); setEditingPlan(true) }}
-                      className="
-                        absolute top-0 right-0 opacity-0 group-hover:opacity-100
-                        text-xs font-mono px-2 py-0.5 rounded
-                        bg-parchment-200 text-parchment-600 hover:bg-parchment-300
-                        transition-opacity
-                      "
+                      onClick={() => setCreatingPlan(true)}
+                      className="text-xs font-mono px-2 py-0.5 rounded
+                        bg-parchment-200 text-parchment-600 hover:bg-parchment-300"
                     >
-                      edit
+                      + new plan
                     </button>
                   </div>
-                )}
+
+                  {/* New plan form */}
+                  {creatingPlan && (
+                    <div className="mb-2 p-2 border border-parchment-200 rounded bg-white/50 space-y-2">
+                      <input
+                        type="text"
+                        placeholder="plan name (e.g. v2, phase-2)"
+                        value={newPlanName}
+                        onChange={(e) => setNewPlanName(e.target.value)}
+                        className="w-full text-xs font-mono px-2 py-1 border border-parchment-300 rounded
+                          focus:outline-none focus:border-blood/50"
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={() => { setCreatingPlan(false); setNewPlanName('') }}
+                          className="text-xs font-mono px-2 py-0.5 rounded
+                            bg-parchment-200 text-parchment-600 hover:bg-parchment-300"
+                        >
+                          cancel
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!newPlanName.trim()) return
+                            await fetch(`/api/projects/${selectedProject.id}/plans`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ name: newPlanName.trim() }),
+                            })
+                            setCreatingPlan(false)
+                            setNewPlanName('')
+                          }}
+                          className="text-xs font-mono px-2 py-0.5 rounded
+                            bg-blood text-white hover:bg-blood/80"
+                        >
+                          create
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Plan cards */}
+                  {(() => {
+                    const projectPlans = plans
+                      .filter((p) => p.project_id === selectedProject.id)
+                      .sort((a, b) => b.version - a.version)
+
+                    if (projectPlans.length === 0 && !creatingPlan) {
+                      return (
+                        <p className="text-xs font-mono text-parchment-400 italic">
+                          no plans yet
+                        </p>
+                      )
+                    }
+
+                    const PLAN_STATUS_COLORS: Record<string, string> = {
+                      draft: 'bg-parchment-200 text-parchment-600',
+                      proposed: 'bg-amber-100 text-amber-700',
+                      approved: 'bg-blue-100 text-blue-700',
+                      active: 'bg-blood/10 text-blood',
+                      completed: 'bg-green-100 text-green-700',
+                      rejected: 'bg-red-100 text-red-600',
+                      superseded: 'bg-parchment-100 text-parchment-400',
+                    }
+
+                    return (
+                      <div className="space-y-1.5">
+                        {projectPlans.map((plan) => {
+                          const isActive = plan.id === selectedProject.active_plan_id
+                          const isEditing = editingPlanId === plan.id
+                          const statusColor = PLAN_STATUS_COLORS[plan.status] || PLAN_STATUS_COLORS.draft
+
+                          return (
+                            <div key={plan.id} className={`
+                              rounded border p-2
+                              ${isActive ? 'border-blood/30 bg-blood/[0.02]' : 'border-parchment-200 bg-white/30'}
+                            `}>
+                              {/* Plan header */}
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-typewriter text-xs font-bold">{plan.name}</span>
+                                  <span className="text-xs text-parchment-400 font-mono">v{plan.version}</span>
+                                </div>
+                                <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${statusColor}`}>
+                                  {plan.status}
+                                </span>
+                              </div>
+
+                              {/* Author */}
+                              <div className="text-xs font-mono text-parchment-400 mb-1">
+                                by {plan.author_name} · {plan.task_ids.length} tasks
+                              </div>
+
+                              {/* Content / Editor */}
+                              {isEditing ? (
+                                <div className="space-y-2 mt-2">
+                                  <textarea
+                                    value={planDraft}
+                                    onChange={(e) => setPlanDraft(e.target.value)}
+                                    className="
+                                      w-full min-h-[200px] font-mono text-xs text-parchment-800
+                                      bg-white/80 border border-parchment-300 rounded p-2 resize-y
+                                      focus:outline-none focus:border-blood/50
+                                    "
+                                    spellCheck={false}
+                                  />
+                                  <div className="flex items-center justify-end gap-2">
+                                    <button
+                                      onClick={() => setEditingPlanId(null)}
+                                      className="text-xs font-mono px-2 py-0.5 rounded
+                                        bg-parchment-200 text-parchment-600 hover:bg-parchment-300"
+                                    >
+                                      cancel
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        setSavingPlan(true)
+                                        await fetch(`/api/plans/${plan.id}/content`, {
+                                          method: 'PUT',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ content: planDraft }),
+                                        })
+                                        setSavingPlan(false)
+                                        setEditingPlanId(null)
+                                      }}
+                                      disabled={savingPlan}
+                                      className="text-xs font-mono px-2 py-0.5 rounded
+                                        bg-blood text-white hover:bg-blood/80 disabled:opacity-50"
+                                    >
+                                      {savingPlan ? 'saving...' : 'save'}
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  {plan.content && (
+                                    <pre
+                                      className="text-xs font-mono text-parchment-600 whitespace-pre-wrap leading-relaxed
+                                        max-h-32 overflow-y-auto cursor-pointer hover:bg-parchment-50 rounded p-1 -mx-1 mt-1"
+                                      onClick={() => { setPlanDraft(plan.content); setEditingPlanId(plan.id) }}
+                                    >
+                                      {plan.content}
+                                    </pre>
+                                  )}
+
+                                  {/* Action buttons */}
+                                  <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                                    <button
+                                      onClick={() => { setPlanDraft(plan.content || ''); setEditingPlanId(plan.id) }}
+                                      className="text-xs font-mono px-2 py-0.5 rounded
+                                        bg-parchment-200 text-parchment-600 hover:bg-parchment-300"
+                                    >
+                                      edit
+                                    </button>
+
+                                    {plan.status === 'draft' && (
+                                      <button
+                                        onClick={async () => {
+                                          await fetch(`/api/plans/${plan.id}/status`, {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ status: 'proposed' }),
+                                          })
+                                        }}
+                                        className="text-xs font-mono px-2 py-0.5 rounded
+                                          bg-amber-100 text-amber-700 hover:bg-amber-200"
+                                      >
+                                        propose
+                                      </button>
+                                    )}
+
+                                    {(plan.status === 'proposed' || plan.status === 'draft') && (
+                                      <button
+                                        onClick={async () => {
+                                          await fetch(`/api/plans/${plan.id}/status`, {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ status: 'approved' }),
+                                          })
+                                        }}
+                                        className="text-xs font-mono px-2 py-0.5 rounded
+                                          bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                      >
+                                        approve
+                                      </button>
+                                    )}
+
+                                    {(plan.status === 'approved' || plan.status === 'active') && plan.content && (
+                                      <button
+                                        onClick={async () => {
+                                          await fetch(`/api/plans/${plan.id}/generate-tasks`, { method: 'POST' })
+                                        }}
+                                        className="text-xs font-mono px-2 py-0.5 rounded
+                                          bg-green-100 text-green-700 hover:bg-green-200"
+                                      >
+                                        generate tasks
+                                      </button>
+                                    )}
+
+                                    {!isActive && (plan.status === 'approved' || plan.status === 'active') && (
+                                      <button
+                                        onClick={async () => {
+                                          await fetch(`/api/plans/${plan.id}/status`, {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ status: 'active' }),
+                                          })
+                                        }}
+                                        className="text-xs font-mono px-2 py-0.5 rounded
+                                          bg-blood/10 text-blood hover:bg-blood/20"
+                                      >
+                                        activate
+                                      </button>
+                                    )}
+
+                                    {isActive && (
+                                      <span className="text-xs font-mono text-blood">● active</span>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  })()}
+                </div>
 
                 {/* Gates */}
                 {Object.keys(selectedProject.gates).length > 0 && (

@@ -22,7 +22,7 @@ export function useWebSocket() {
 
         if (msg.type === 'init' || msg.type === 'canvas_update') {
           // full canvas state — used for init and live updates during execution
-          setCanvas(msg.data.agents, msg.data.tasks, msg.data.events, msg.data.projects)
+          setCanvas(msg.data.agents, msg.data.tasks, msg.data.events, msg.data.projects, msg.data.plans)
         } else if (msg.type === 'agent_moved') {
           moveAgent(msg.data.agent_id, msg.data.x, msg.data.y)
         } else if (msg.type === 'agent_thinking') {

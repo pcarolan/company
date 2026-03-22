@@ -24,6 +24,7 @@ class AgentRole(str, Enum):
     REVIEWER = "reviewer"
     INTEGRATOR = "integrator"
     SCOUT = "scout"
+    PLANNER = "planner"
 
 
 class AgentStatus(str, Enum):

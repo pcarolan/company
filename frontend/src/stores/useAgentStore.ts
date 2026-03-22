@@ -35,6 +35,20 @@ export interface AgentIdentity {
   daily_notes: Record<string, string>
 }
 
+export interface PlanNode {
+  id: string
+  project_id: string
+  name: string
+  content: string
+  status: string
+  author_agent_id: string | null
+  author_name: string
+  task_ids: string[]
+  version: number
+  created_at: string
+  updated_at: string | null
+}
+
 export interface AgentMessage {
   id: string
   from_id: string
@@ -65,6 +79,8 @@ export interface ProjectNode {
   repo: string | null
   branch: string | null
   plan: string
+  plan_ids: string[]
+  active_plan_id: string | null
   agent_ids: string[]
   task_ids: string[]
   x: number
@@ -93,12 +109,13 @@ interface AgentStoreState {
   agents: AgentNode[]
   tasks: TaskNode[]
   projects: ProjectNode[]
+  plans: PlanNode[]
   events: EventItem[]
   messages: AgentMessage[]
   selectedId: string | null
   selectedProjectId: string | null
 
-  setCanvas: (agents: AgentNode[], tasks: TaskNode[], events: EventItem[], projects?: ProjectNode[]) => void
+  setCanvas: (agents: AgentNode[], tasks: TaskNode[], events: EventItem[], projects?: ProjectNode[], plans?: PlanNode[]) => void
   moveAgent: (id: string, x: number, y: number) => void
   updateAgent: (id: string, updates: Partial<AgentNode>) => void
   addEvent: (event: EventItem) => void
@@ -111,12 +128,17 @@ export const useAgentStore = create<AgentStoreState>((set) => ({
   agents: [],
   tasks: [],
   projects: [],
+  plans: [],
   events: [],
   messages: [],
   selectedId: null,
   selectedProjectId: null,
 
-  setCanvas: (agents, tasks, events, projects) => set({ agents, tasks, events, projects: projects || [] }),
+  setCanvas: (agents, tasks, events, projects, plans) => set({
+    agents, tasks, events,
+    projects: projects || [],
+    plans: plans || [],
+  }),
 
   moveAgent: (id, x, y) => set((s) => ({
     agents: s.agents.map((a) => a.id === id ? { ...a, x, y } : a),

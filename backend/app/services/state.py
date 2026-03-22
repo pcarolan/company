@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
-from ..models import Agent, AgentRole, AgentStatus, Task, TaskStatus, Event, EventType, Project, ProjectStatus
+from ..models import Agent, AgentRole, AgentStatus, Task, TaskStatus, Event, EventType, Project, ProjectStatus, Plan, PlanStatus
 
 
 class CompanyState:
@@ -15,6 +15,7 @@ class CompanyState:
         self.agents: dict[str, Agent] = {}
         self.tasks: dict[str, Task] = {}
         self.projects: dict[str, Project] = {}
+        self.plans: dict[str, Plan] = {}
         self.events: list[Event] = []
         self._ws_connections: list = []
 
@@ -224,6 +225,130 @@ class CompanyState:
             project.updated_at = datetime.now(timezone.utc)
         return project
 
+    # --- plans ---
+
+    def add_plan(
+        self,
+        project_id: str,
+        name: str,
+        content: str = "",
+        author_agent_id: str | None = None,
+        author_name: str = "human",
+    ) -> Plan | None:
+        project = self.projects.get(project_id)
+        if not project:
+            return None
+
+        plan = Plan(
+            project_id=project_id,
+            name=name,
+            content=content,
+            author_agent_id=author_agent_id,
+            author_name=author_name,
+            version=len(project.plan_ids) + 1,
+        )
+        self.plans[plan.id] = plan
+        project.plan_ids.append(plan.id)
+        project.updated_at = datetime.now(timezone.utc)
+        return plan
+
+    def get_plan(self, plan_id: str) -> Plan | None:
+        return self.plans.get(plan_id)
+
+    def update_plan_content(self, plan_id: str, content: str) -> Plan | None:
+        plan = self.plans.get(plan_id)
+        if plan:
+            plan.content = content
+            plan.updated_at = datetime.now(timezone.utc)
+        return plan
+
+    def update_plan_status(self, plan_id: str, status: PlanStatus) -> Plan | None:
+        plan = self.plans.get(plan_id)
+        if not plan:
+            return None
+
+        project = self.projects.get(plan.project_id)
+        if not project:
+            return None
+
+        old_status = plan.status
+        plan.status = status
+        plan.updated_at = datetime.now(timezone.utc)
+
+        # if activating this plan, deactivate others and sync legacy field
+        if status == PlanStatus.ACTIVE:
+            for pid in project.plan_ids:
+                other = self.plans.get(pid)
+                if other and other.id != plan_id and other.status == PlanStatus.ACTIVE:
+                    other.status = PlanStatus.SUPERSEDED
+                    other.updated_at = datetime.now(timezone.utc)
+            project.active_plan_id = plan_id
+            project.plan = plan.content  # sync legacy field
+            project.updated_at = datetime.now(timezone.utc)
+
+        # if approving, also activate if no other active plan
+        if status == PlanStatus.APPROVED and not project.active_plan_id:
+            plan.status = PlanStatus.ACTIVE
+            project.active_plan_id = plan_id
+            project.plan = plan.content
+            project.updated_at = datetime.now(timezone.utc)
+
+        return plan
+
+    def generate_tasks_from_plan_obj(self, plan_id: str) -> list[Task]:
+        """Generate tasks from a specific plan."""
+        plan = self.plans.get(plan_id)
+        if not plan:
+            return []
+
+        project = self.projects.get(plan.project_id)
+        if not project:
+            return []
+
+        new_tasks: list[Task] = []
+        lines = plan.content.strip().split("\n")
+        current_priority = 2
+
+        for line in lines:
+            stripped = line.strip()
+
+            if stripped.startswith("## P") and len(stripped) >= 5 and stripped[4].isdigit():
+                current_priority = int(stripped[4])
+                continue
+
+            task_title = None
+            if stripped.startswith("- [ ] "):
+                task_title = stripped[6:].strip()
+            elif stripped.startswith("- ") and not stripped.startswith("  -"):
+                candidate = stripped[2:].strip()
+                if candidate and candidate[0].isupper():
+                    task_title = candidate
+
+            if task_title:
+                assigned_hint = None
+                if task_title.endswith("]") and "[" in task_title:
+                    bracket_start = task_title.rfind("[")
+                    assigned_hint = task_title[bracket_start + 1:-1].strip()
+                    task_title = task_title[:bracket_start].strip()
+
+                task = self.add_task(
+                    title=task_title,
+                    priority=current_priority,
+                    project_id=plan.project_id,
+                )
+
+                if assigned_hint:
+                    for agent in self.agents.values():
+                        if agent.name == assigned_hint and agent.id in project.agent_ids:
+                            self.claim_task(task.id, agent.id)
+                            break
+
+                plan.task_ids.append(task.id)
+                new_tasks.append(task)
+
+        plan.updated_at = datetime.now(timezone.utc)
+        return new_tasks
+
     def set_project_plan(self, project_id: str, plan: str) -> Project | None:
         project = self.projects.get(project_id)
         if project:
@@ -350,5 +475,6 @@ class CompanyState:
             "agents": [a.to_canvas_node() for a in self.agents.values()],
             "tasks": [t.model_dump(mode="json") for t in self.tasks.values()],
             "projects": [p.to_canvas_node() for p in self.projects.values()],
+            "plans": [p.to_dict() for p in self.plans.values()],
             "events": [e.model_dump(mode="json") for e in self.events[-50:]],
         }

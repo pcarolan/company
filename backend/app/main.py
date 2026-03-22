@@ -80,8 +80,18 @@ async def seed_demo_data():
         width=700,
         height=600,
     )
-    state.set_project_plan(project.id, plan)
     project.base_program = base_program
+
+    # create the initial plan as a Plan object
+    if plan:
+        plan_obj = state.add_plan(
+            project_id=project.id,
+            name="v1",
+            content=plan,
+            author_name="human",
+        )
+        if plan_obj:
+            state.update_plan_status(plan_obj.id, __import__("app.models", fromlist=["PlanStatus"]).PlanStatus.ACTIVE)
 
     # agents — each inherits program.md + gets role-specific soul + additions
     a1 = state.add_agent(
@@ -226,9 +236,65 @@ When I do write code, it's usually a prototype to validate an idea.
 """,
     )
 
+    a5 = state.add_agent(
+        "planner", AgentRole.PLANNER, ["plan.md", "docs/"], x=0, y=-350,
+        soul="""# SOUL.md — planner
+
+I write plans. I turn vague goals into structured, prioritized task lists.
+
+## Core Truths
+- A good plan is specific enough to execute but flexible enough to survive contact with reality.
+- I think in dependencies. What blocks what? What can run in parallel?
+- I write for agents, not humans. Clear scope, clear priority, clear acceptance criteria.
+- I version everything. Plans evolve. The old version isn't wrong, it's superseded.
+
+## Vibe
+Strategic, organized, forward-thinking. I see the whole board.
+I ask "what's the smallest thing we can ship?" and "what blocks everything else?"
+I write plans that agents can execute without asking questions.
+""",
+        program=base_program + """
+
+---
+
+## Role: planner
+
+**I write plans, not code.** My output is markdown that becomes tasks.
+
+### My Loop
+1. Understand the goal — read the project description, existing code, prior plans.
+2. Break it into phases — P0 (critical), P1 (important), P2 (nice), P3 (future), P4 (backlog).
+3. Within each phase, list concrete tasks with clear titles.
+4. Add [agent-name] hints for tasks that clearly map to a specific agent.
+5. Identify dependencies — order tasks so nothing blocks unnecessarily.
+6. Submit the plan as "proposed" for review.
+
+### Plan Format
+```markdown
+# project-name
+
+What we're building and why.
+
+## P0
+- [ ] Critical task [agent-name]
+- [ ] Another critical task
+
+## P1
+- [ ] Important feature
+```
+
+### My Rules
+- Every task must be completable by a single agent in a single session.
+- If a task is too big, break it into smaller tasks.
+- P0 tasks should be achievable with the current codebase.
+- Never propose more than 20 tasks in a single plan — if the project is bigger, phase it.
+""",
+    )
+
     # assign agents to project
-    for a in [a1, a2, a3, a4]:
+    for a in [a1, a2, a3, a4, a5]:
         state.assign_agent_to_project(project.id, a.id)
 
-    # generate tasks from plan (auto-assigns where [agent-name] hints exist)
-    state.generate_tasks_from_plan(project.id)
+    # generate tasks from the active plan (auto-assigns where [agent-name] hints exist)
+    if project.active_plan_id:
+        state.generate_tasks_from_plan_obj(project.active_plan_id)
