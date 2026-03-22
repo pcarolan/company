@@ -340,6 +340,25 @@ def delete_task(task_id: str):
     return {"ok": True}
 
 
+@router.delete("/tasks")
+def delete_tasks_by_status(status: str = "open", project_id: Optional[str] = None):
+    """Delete all tasks matching a status. Defaults to open."""
+    from ..models import TaskStatus
+    try:
+        target_status = TaskStatus(status)
+    except ValueError:
+        raise HTTPException(400, f"Invalid status: {status}")
+
+    to_delete = [
+        t.id for t in state.tasks.values()
+        if t.status == target_status
+        and (project_id is None or t.project_id == project_id)
+    ]
+    for tid in to_delete:
+        state.delete_task(tid)
+    return {"deleted": len(to_delete)}
+
+
 class UpdateTaskRequest(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
