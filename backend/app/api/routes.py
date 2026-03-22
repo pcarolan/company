@@ -340,8 +340,35 @@ def delete_task(task_id: str):
     return {"ok": True}
 
 
+class UpdateTaskRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    priority: Optional[int] = None
+    status: Optional[str] = None
+
+
 class RunTaskRequest(BaseModel):
     agent_id: Optional[str] = None
+
+
+@router.put("/tasks/{task_id}")
+def update_task(task_id: str, req: UpdateTaskRequest):
+    task = state.tasks.get(task_id)
+    if not task:
+        raise HTTPException(404, "Task not found")
+    if req.title is not None:
+        task.title = req.title
+    if req.description is not None:
+        task.description = req.description
+    if req.priority is not None:
+        task.priority = req.priority
+    if req.status is not None:
+        from ..models import TaskStatus
+        try:
+            task.status = TaskStatus(req.status)
+        except ValueError:
+            raise HTTPException(400, f"Invalid status: {req.status}")
+    return task.model_dump(mode="json")
 
 
 @router.post("/tasks/{task_id}/run")
