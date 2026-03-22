@@ -1,5 +1,7 @@
 """Company — the app that is the company."""
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,6 +9,10 @@ from .api.routes import router, set_state as set_routes_state
 from .api.websocket import ws_router, set_state as set_ws_state
 from .services import CompanyState
 from .models import AgentRole
+
+# find plan.md relative to the project root
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+PLAN_PATH = PROJECT_ROOT / "plan.md"
 
 app = FastAPI(
     title="Company",
@@ -37,25 +43,10 @@ app.include_router(ws_router)
 async def seed_demo_data():
     """Seed demo data so the canvas isn't empty on first load."""
 
-    # project with plan
-    plan = """# company-app
-
-Build the infinite canvas app that is and represents the company.
-
-## P1
-- [ ] Set up auth module [auth-impl]
-- [ ] API route scaffolding [api-impl]
-- [ ] Write integration tests [test-agent]
-
-## P2
-- [ ] WebSocket real-time sync
-- [ ] Agent-to-agent messaging UI
-- [ ] Project sidebar drill-down
-
-## P3
-- [ ] Persistent storage (replace in-memory state)
-- [ ] Git integration for agent branches
-"""
+    # load plan from plan.md
+    plan = ""
+    if PLAN_PATH.exists():
+        plan = PLAN_PATH.read_text()
 
     project = state.add_project(
         name="company-app",
