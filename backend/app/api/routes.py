@@ -5,17 +5,23 @@ from pydantic import BaseModel
 from typing import Optional
 
 from ..models import AgentRole, AgentStatus, ProjectStatus
-from ..services import CompanyState
+from ..services import CompanyState, GitService
 
 router = APIRouter(prefix="/api")
 
 # shared state — injected from main
 state: CompanyState = CompanyState()
+git: GitService = GitService()
 
 
 def set_state(s: CompanyState) -> None:
     global state
     state = s
+
+
+def set_git(g: GitService) -> None:
+    global git
+    git = g
 
 
 # --- request models ---
@@ -92,7 +98,11 @@ class CreateProjectRequest(BaseModel):
     name: str
     description: str = ""
     repo: Optional[str] = None
+    create_repo: bool = True  # auto-create GitHub repo
+    private: bool = False
     gates: dict[str, str] = {}
+    plan: str = ""
+    program: str = ""
     x: float = 0.0
     y: float = 0.0
     width: float = 600.0
@@ -362,16 +372,70 @@ def list_projects():
 
 @router.post("/projects")
 def create_project(req: CreateProjectRequest):
+    repo_url = req.repo
+
+    # auto-create GitHub repo if requested and no repo URL provided
+    if req.create_repo and not repo_url:
+        repo_url = git.create_repo(
+            name=req.name,
+            description=req.description,
+            private=req.private,
+        )
+
     project = state.add_project(
         name=req.name,
         description=req.description,
-        repo=req.repo,
+        repo=repo_url,
         gates=req.gates,
         x=req.x,
         y=req.y,
         width=req.width,
         height=req.height,
     )
+
+    # set plan + program if provided
+    if req.plan:
+        state.set_project_plan(project.id, req.plan)
+    if req.program:
+        project.base_program = req.program
+
+    # init local working directory + push initial files
+    if repo_url:
+        git.init_local(req.name, repo_url)
+        git.init_project_files(
+            req.name,
+            plan=project.plan,
+            program=project.base_program,
+            gates=req.gates,
+        )
+
+    return project.to_canvas_node()
+
+
+@router.post("/projects/{project_id}/init-repo")
+def init_project_repo(project_id: str):
+    """Create a GitHub repo for an existing project that doesn't have one."""
+    project = state.get_project(project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+    if project.repo:
+        raise HTTPException(409, f"Project already has repo: {project.repo}")
+
+    repo_url = git.create_repo(name=project.name, description=project.description)
+    if not repo_url:
+        raise HTTPException(500, "Failed to create repo — check GITHUB_TOKEN")
+
+    project.repo = repo_url
+    project.updated_at = __import__("datetime").datetime.now(__import__("datetime").timezone.utc)
+
+    git.init_local(project.name, repo_url)
+    git.init_project_files(
+        project.name,
+        plan=project.plan,
+        program=project.base_program,
+        gates=project.gates,
+    )
+
     return project.to_canvas_node()
 
 

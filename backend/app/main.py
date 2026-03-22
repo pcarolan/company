@@ -7,9 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from .api.routes import router, set_state as set_routes_state
+from .api.routes import router, set_state as set_routes_state, set_git as set_routes_git
 from .api.websocket import ws_router, set_state as set_ws_state
-from .services import CompanyState
+from .services import CompanyState, GitService
 from .models import AgentRole
 
 # find plan.md, program.md, and frontend dist relative to the project root
@@ -33,9 +33,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# shared state
+# shared state + services
 state = CompanyState()
+git_service = GitService()
 set_routes_state(state)
+set_routes_git(git_service)
 set_ws_state(state)
 
 # register routes

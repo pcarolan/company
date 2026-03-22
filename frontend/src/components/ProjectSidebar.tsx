@@ -110,12 +110,24 @@ export function ProjectSidebar() {
       {/* Project detail */}
       {selectedProject ? (
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Description */}
-          {selectedProject.description && (
-            <div className="px-4 py-2 border-b border-parchment-200 flex-shrink-0">
-              <p className="text-xs text-parchment-600">{selectedProject.description}</p>
-            </div>
-          )}
+          {/* Description + Repo */}
+          <div className="px-4 py-2 border-b border-parchment-200 flex-shrink-0">
+            {selectedProject.description && (
+              <p className="text-xs text-parchment-600 mb-1">{selectedProject.description}</p>
+            )}
+            {selectedProject.repo ? (
+              <a
+                href={selectedProject.repo}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-mono text-blood hover:underline flex items-center gap-1"
+              >
+                <span>⎇</span> {selectedProject.repo.replace('https://github.com/', '')}
+              </a>
+            ) : (
+              <span className="text-xs font-mono text-parchment-400 italic">no repo</span>
+            )}
+          </div>
 
           {/* Tabs */}
           <div className="flex border-b border-parchment-200 flex-shrink-0">

@@ -50,6 +50,9 @@ export function ProjectRegion({ project }: Props) {
         }`}>
           {project.status}
         </span>
+        {project.repo && (
+          <span className="ml-2 text-xs font-mono text-parchment-400">⎇</span>
+        )}
       </div>
 
       {/* Gate badges — bottom left */}
