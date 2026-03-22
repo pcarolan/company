@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useAgentStore, type AgentNode } from '../stores/useAgentStore'
 import { ROLE_ICONS, STATUS_COLORS, PRIORITY_COLORS } from '../theme/colors'
 
@@ -34,7 +34,31 @@ export function ProjectSidebar() {
   const selectProject = useAgentStore((s) => s.selectProject)
   const [activeTab, setActiveTab] = useState<Tab>('plan')
   const plans = useAgentStore((s) => s.plans)
+  const [width, setWidth] = useState(288) // 18rem = 288px
   const [runLoading, setRunLoading] = useState(false)
+  const dragging = useRef(false)
+  const startX = useRef(0)
+  const startW = useRef(0)
+
+  const onResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    dragging.current = true
+    startX.current = e.clientX
+    startW.current = width
+
+    const onMove = (ev: MouseEvent) => {
+      if (!dragging.current) return
+      const delta = ev.clientX - startX.current
+      setWidth(Math.max(200, Math.min(600, startW.current + delta)))
+    }
+    const onUp = () => {
+      dragging.current = false
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }, [width])
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null)
   const [planDraft, setPlanDraft] = useState('')
   const [savingPlan, setSavingPlan] = useState(false)
@@ -62,12 +86,23 @@ export function ProjectSidebar() {
   const selectedProject = projects.find((p) => p.id === selectedProjectId)
 
   return (
-    <div className="
-      fixed top-0 left-0 w-72 h-full
-      bg-parchment-50/95 backdrop-blur-sm
-      border-r border-parchment-300
-      z-50 flex flex-col
-    ">
+    <div
+      className="
+        fixed top-0 left-0 h-full
+        bg-parchment-50/95 backdrop-blur-sm
+        border-r border-parchment-300
+        z-50 flex flex-col
+      "
+      style={{ width }}
+    >
+      {/* Resize handle */}
+      <div
+        onMouseDown={onResizeStart}
+        className="
+          absolute top-0 right-0 w-1 h-full cursor-col-resize z-10
+          hover:bg-blood/20 active:bg-blood/30 transition-colors
+        "
+      />
       {/* Header */}
       <div className="px-4 py-3 border-b border-parchment-300">
         <h2 className="font-typewriter text-sm text-parchment-600">projects</h2>
