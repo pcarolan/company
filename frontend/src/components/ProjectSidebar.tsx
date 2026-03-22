@@ -34,6 +34,9 @@ export function ProjectSidebar() {
   const selectProject = useAgentStore((s) => s.selectProject)
   const [activeTab, setActiveTab] = useState<Tab>('plan')
   const [runLoading, setRunLoading] = useState(false)
+  const [editingPlan, setEditingPlan] = useState(false)
+  const [planDraft, setPlanDraft] = useState('')
+  const [savingPlan, setSavingPlan] = useState(false)
 
   const handleRun = useCallback(async (projectId: string) => {
     setRunLoading(true)
@@ -262,14 +265,74 @@ export function ProjectSidebar() {
                   })()}
                 </div>
 
-                {selectedProject.plan ? (
-                  <pre className="text-xs font-mono text-parchment-700 whitespace-pre-wrap leading-relaxed">
-                    {selectedProject.plan}
-                  </pre>
+                {editingPlan ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={planDraft}
+                      onChange={(e) => setPlanDraft(e.target.value)}
+                      className="
+                        w-full min-h-[300px] font-mono text-xs text-parchment-800
+                        bg-white/80 border border-parchment-300 rounded p-3 resize-y
+                        focus:outline-none focus:border-blood/50
+                      "
+                      spellCheck={false}
+                    />
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setEditingPlan(false)}
+                        className="text-xs font-mono px-3 py-1 rounded
+                          bg-parchment-200 text-parchment-600 hover:bg-parchment-300"
+                      >
+                        cancel
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setSavingPlan(true)
+                          await fetch(`/api/projects/${selectedProject.id}/plan`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ plan: planDraft }),
+                          })
+                          setSavingPlan(false)
+                          setEditingPlan(false)
+                        }}
+                        disabled={savingPlan}
+                        className="text-xs font-mono px-3 py-1 rounded
+                          bg-blood text-white hover:bg-blood/80 disabled:opacity-50"
+                      >
+                        {savingPlan ? 'saving...' : 'save plan'}
+                      </button>
+                    </div>
+                  </div>
                 ) : (
-                  <p className="text-xs font-mono text-parchment-400 italic">
-                    no plan yet — set one via the API
-                  </p>
+                  <div className="group relative">
+                    {selectedProject.plan ? (
+                      <pre
+                        className="text-xs font-mono text-parchment-700 whitespace-pre-wrap leading-relaxed cursor-pointer hover:bg-parchment-100 rounded p-1 -m-1 transition-colors"
+                        onClick={() => { setPlanDraft(selectedProject.plan); setEditingPlan(true) }}
+                      >
+                        {selectedProject.plan}
+                      </pre>
+                    ) : (
+                      <p
+                        className="text-xs font-mono text-parchment-400 italic cursor-pointer hover:text-parchment-600"
+                        onClick={() => { setPlanDraft(''); setEditingPlan(true) }}
+                      >
+                        click to write a plan
+                      </p>
+                    )}
+                    <button
+                      onClick={() => { setPlanDraft(selectedProject.plan || ''); setEditingPlan(true) }}
+                      className="
+                        absolute top-0 right-0 opacity-0 group-hover:opacity-100
+                        text-xs font-mono px-2 py-0.5 rounded
+                        bg-parchment-200 text-parchment-600 hover:bg-parchment-300
+                        transition-opacity
+                      "
+                    >
+                      edit
+                    </button>
+                  </div>
                 )}
 
                 {/* Gates */}
