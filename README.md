@@ -85,21 +85,35 @@ docker run -p 8000:8000 company
 
 Canvas + API at **http://localhost:8000**
 
-### Local Dev
+### Dev Mode (recommended)
 
 ```bash
-# Backend (terminal 1)
-cd backend
-uv sync --extra dev
-uv run uvicorn app.main:app --reload --port 8000
-
-# Frontend (terminal 2)
-cd frontend
-npm install
-npm run dev
+./dev.sh
 ```
 
+That's it. Backend + frontend start with hot reload. Edit any file, see changes instantly:
+- **Python changes** → uvicorn auto-restarts (~1s)
+- **React/CSS changes** → Vite HMR (instant, no refresh)
+
 Canvas at **http://localhost:3000** → proxies API to :8000
+
+### Docker Dev (with volume mounts)
+
+```bash
+docker compose -f docker-compose.dev.yml up
+```
+
+Same hot reload, but inside containers. Source is mounted as volumes — edit locally, changes reflect immediately.
+
+### Manual (two terminals)
+
+```bash
+# Terminal 1: Backend
+cd backend && uv sync --extra dev && uv run uvicorn app.main:app --reload --port 8000
+
+# Terminal 2: Frontend
+cd frontend && npm install && npm run dev
+```
 
 ## API
 
