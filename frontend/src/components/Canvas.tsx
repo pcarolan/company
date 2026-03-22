@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useCanvasStore } from '../stores/useCanvasStore'
 import { useAgentStore } from '../stores/useAgentStore'
 import { AgentNode } from './AgentNode'
@@ -8,7 +8,7 @@ import { ProjectRegion } from './ProjectRegion'
 import { TaskDetailPanel } from './TaskDetailPanel'
 
 export function Canvas() {
-  const { offsetX, offsetY, zoom, startDrag, drag, endDrag, zoomBy } = useCanvasStore()
+  const { offsetX, offsetY, zoom, startDrag, drag, endDrag, zoomBy, fitToContent, hasFitted } = useCanvasStore()
   const agents = useAgentStore((s) => s.agents)
   const tasks = useAgentStore((s) => s.tasks)
   const projects = useAgentStore((s) => s.projects)
@@ -17,6 +17,21 @@ export function Canvas() {
   const selectedTaskId = useAgentStore((s) => s.selectedTaskId)
   const select = useAgentStore((s) => s.select)
   const selectTask = useAgentStore((s) => s.selectTask)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Fit canvas to content on first data load
+  useEffect(() => {
+    if (hasFitted) return
+    const items = [
+      ...agents.map((a) => ({ x: a.x, y: a.y })),
+      ...tasks.map((t) => ({ x: t.x, y: t.y })),
+    ]
+    if (items.length === 0) return
+    const el = containerRef.current
+    const viewW = el?.clientWidth ?? window.innerWidth
+    const viewH = el?.clientHeight ?? window.innerHeight
+    fitToContent(items, viewW, viewH)
+  }, [agents, tasks, hasFitted, fitToContent])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 0) startDrag(e.clientX, e.clientY)
@@ -35,6 +50,7 @@ export function Canvas() {
 
   return (
     <div
+      ref={containerRef}
       className="w-full h-full relative"
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
