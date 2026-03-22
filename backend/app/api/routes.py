@@ -97,6 +97,13 @@ class SetPlanRequest(BaseModel):
     plan: str
 
 
+class RecordCostRequest(BaseModel):
+    agent_id: str
+    cost_usd: float
+    tokens_prompt: int = 0
+    tokens_completion: int = 0
+
+
 # --- endpoints ---
 
 @router.get("/canvas")
@@ -325,3 +332,50 @@ def set_thinking(agent_id: str, req: ThinkingRequest):
     if not agent:
         raise HTTPException(404, "Agent not found")
     return agent.to_canvas_node()
+
+
+# --- cost tracking ---
+
+@router.post("/cost")
+def record_cost(req: RecordCostRequest):
+    """Record an OpenRouter API call cost. Rolls up from agent → project."""
+    agent = state.record_cost(
+        agent_id=req.agent_id,
+        cost_usd=req.cost_usd,
+        tokens_prompt=req.tokens_prompt,
+        tokens_completion=req.tokens_completion,
+    )
+    if not agent:
+        raise HTTPException(404, "Agent not found")
+    return agent.to_canvas_node()
+
+
+@router.get("/projects/{project_id}/cost")
+def get_project_cost(project_id: str):
+    """Get cost breakdown for a project — total + per-agent."""
+    project = state.get_project(project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    agent_costs = []
+    for aid in project.agent_ids:
+        agent = state.agents.get(aid)
+        if agent:
+            agent_costs.append({
+                "agent_id": agent.id,
+                "name": agent.name,
+                "cost_usd": agent.cost_usd,
+                "tokens_prompt": agent.tokens_prompt,
+                "tokens_completion": agent.tokens_completion,
+                "api_calls": agent.api_calls,
+            })
+
+    return {
+        "project_id": project.id,
+        "project_name": project.name,
+        "total_cost_usd": project.cost_usd,
+        "total_tokens_prompt": project.tokens_prompt,
+        "total_tokens_completion": project.tokens_completion,
+        "total_api_calls": project.api_calls,
+        "agents": sorted(agent_costs, key=lambda a: a["cost_usd"], reverse=True),
+    }

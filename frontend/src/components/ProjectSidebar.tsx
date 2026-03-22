@@ -1,6 +1,20 @@
 import { useState } from 'react'
-import { useAgentStore } from '../stores/useAgentStore'
+import { useAgentStore, type AgentNode } from '../stores/useAgentStore'
 import { ROLE_ICONS, STATUS_COLORS, PRIORITY_COLORS } from '../theme/colors'
+
+function formatCost(usd: number): string {
+  if (usd === 0) return '$0'
+  if (usd < 0.01) return `$${usd.toFixed(4)}`
+  if (usd < 1) return `$${usd.toFixed(2)}`
+  return `$${usd.toFixed(2)}`
+}
+
+function formatTokens(n: number): string {
+  if (n === 0) return '0'
+  if (n < 1000) return `${n}`
+  if (n < 1_000_000) return `${(n / 1000).toFixed(1)}k`
+  return `${(n / 1_000_000).toFixed(1)}M`
+}
 
 const PROJECT_STATUS_COLORS: Record<string, string> = {
   planning: 'text-parchment-500',
@@ -81,6 +95,11 @@ export function ProjectSidebar() {
                   <span className="text-xs text-parchment-400 font-mono">
                     {project.agent_ids.length}a · {projectTasks.length}t
                   </span>
+                  {project.cost_usd > 0 && (
+                    <span className="text-xs font-mono text-amber-600 ml-auto">
+                      {formatCost(project.cost_usd)}
+                    </span>
+                  )}
                 </div>
               </button>
             )
@@ -130,6 +149,51 @@ export function ProjectSidebar() {
             {/* Plan tab */}
             {activeTab === 'plan' && (
               <div className="px-4 py-3">
+                {/* Cost summary */}
+                <div className="mb-4 p-3 rounded bg-parchment-100 border border-parchment-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-typewriter text-xs text-parchment-500">openrouter bill</h3>
+                    <span className="font-mono text-sm font-bold text-amber-600">
+                      {formatCost(selectedProject.cost_usd)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <div className="font-mono text-xs text-parchment-400">calls</div>
+                      <div className="font-mono text-sm text-parchment-700">{selectedProject.api_calls}</div>
+                    </div>
+                    <div>
+                      <div className="font-mono text-xs text-parchment-400">prompt</div>
+                      <div className="font-mono text-sm text-parchment-700">{formatTokens(selectedProject.tokens_prompt)}</div>
+                    </div>
+                    <div>
+                      <div className="font-mono text-xs text-parchment-400">completion</div>
+                      <div className="font-mono text-sm text-parchment-700">{formatTokens(selectedProject.tokens_completion)}</div>
+                    </div>
+                  </div>
+
+                  {/* Per-agent cost breakdown */}
+                  {(() => {
+                    const agentCosts = selectedProject.agent_ids
+                      .map((aid) => agents.find((a) => a.id === aid))
+                      .filter((a): a is AgentNode => !!a && a.cost_usd > 0)
+                      .sort((a, b) => b.cost_usd - a.cost_usd)
+                    if (agentCosts.length === 0) return null
+                    return (
+                      <div className="mt-2 pt-2 border-t border-parchment-200 space-y-1">
+                        {agentCosts.map((agent) => (
+                          <div key={agent.id} className="flex items-center justify-between">
+                            <span className="font-mono text-xs text-parchment-600 truncate">{agent.name}</span>
+                            <span className="font-mono text-xs text-amber-600 shrink-0 ml-2">
+                              {formatCost(agent.cost_usd)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })()}
+                </div>
+
                 {selectedProject.plan ? (
                   <pre className="text-xs font-mono text-parchment-700 whitespace-pre-wrap leading-relaxed">
                     {selectedProject.plan}
@@ -198,6 +262,9 @@ export function ProjectSidebar() {
                             ) : (
                               <div className="text-xs font-mono text-parchment-400">
                                 {agent.status} · ↑{agent.commits} ↩{agent.reverts}
+                                {agent.cost_usd > 0 && (
+                                  <span className="text-amber-600 ml-1">· {formatCost(agent.cost_usd)}</span>
+                                )}
                               </div>
                             )}
                           </div>

@@ -43,6 +43,12 @@ class Project(BaseModel):
     program_file: str = "program.md"
     gates: dict[str, str] = Field(default_factory=dict)  # gate_name: command
 
+    # cost tracking (OpenRouter)
+    cost_usd: float = 0.0
+    tokens_prompt: int = 0
+    tokens_completion: int = 0
+    api_calls: int = 0
+
     # meta
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: Optional[datetime] = None
@@ -64,4 +70,8 @@ class Project(BaseModel):
             "plan": self.plan,
             "gates": self.gates,
             "program_file": self.program_file,
+            "cost_usd": self.cost_usd,
+            "tokens_prompt": self.tokens_prompt,
+            "tokens_completion": self.tokens_completion,
+            "api_calls": self.api_calls,
         }

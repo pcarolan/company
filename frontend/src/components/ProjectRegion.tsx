@@ -66,8 +66,13 @@ export function ProjectRegion({ project }: Props) {
         </div>
       )}
 
-      {/* Agent + task count — bottom right */}
+      {/* Cost + counts — bottom right */}
       <div className="absolute bottom-2 right-3 text-xs font-mono text-parchment-400">
+        {project.cost_usd > 0 && (
+          <span className="text-amber-600 mr-2">
+            ${project.cost_usd < 0.01 ? project.cost_usd.toFixed(4) : project.cost_usd.toFixed(2)}
+          </span>
+        )}
         {project.agent_ids.length} agents · {project.task_ids.length} tasks
       </div>
     </div>

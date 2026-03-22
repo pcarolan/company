@@ -14,6 +14,10 @@ export interface AgentNode {
   commits: number
   reverts: number
   thinking: string | null
+  cost_usd: number
+  tokens_prompt: number
+  tokens_completion: number
+  api_calls: number
 }
 
 export interface AgentMessage {
@@ -54,6 +58,10 @@ export interface ProjectNode {
   height: number
   gates: Record<string, string>
   program_file: string
+  cost_usd: number
+  tokens_prompt: number
+  tokens_completion: number
+  api_calls: number
 }
 
 export interface EventItem {

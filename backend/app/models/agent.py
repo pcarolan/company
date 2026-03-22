@@ -52,6 +52,12 @@ class Agent(BaseModel):
     reverts_this_session: int = 0
     thinking: Optional[str] = None  # what the agent is currently doing
 
+    # cost tracking (OpenRouter)
+    cost_usd: float = 0.0
+    tokens_prompt: int = 0
+    tokens_completion: int = 0
+    api_calls: int = 0
+
     # meta
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_active: Optional[datetime] = None
@@ -72,4 +78,8 @@ class Agent(BaseModel):
             "commits": self.commits_this_session,
             "reverts": self.reverts_this_session,
             "thinking": self.thinking,
+            "cost_usd": self.cost_usd,
+            "tokens_prompt": self.tokens_prompt,
+            "tokens_completion": self.tokens_completion,
+            "api_calls": self.api_calls,
         }

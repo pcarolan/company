@@ -280,6 +280,42 @@ class CompanyState:
 
         return new_tasks
 
+    def record_cost(
+        self,
+        agent_id: str,
+        cost_usd: float,
+        tokens_prompt: int = 0,
+        tokens_completion: int = 0,
+    ) -> Agent | None:
+        """Record an API call's cost on an agent. Rolls up to the agent's project."""
+        agent = self.agents.get(agent_id)
+        if not agent:
+            return None
+
+        agent.cost_usd += cost_usd
+        agent.tokens_prompt += tokens_prompt
+        agent.tokens_completion += tokens_completion
+        agent.api_calls += 1
+        agent.last_active = datetime.now(timezone.utc)
+
+        # roll up to any project this agent belongs to
+        for project in self.projects.values():
+            if agent_id in project.agent_ids:
+                project.cost_usd += cost_usd
+                project.tokens_prompt += tokens_prompt
+                project.tokens_completion += tokens_completion
+                project.api_calls += 1
+                project.updated_at = datetime.now(timezone.utc)
+
+        self._emit(
+            EventType.COMMIT,  # reuse commit event type for now
+            agent_id,
+            message=f"API call: ${cost_usd:.4f} ({tokens_prompt}+{tokens_completion} tokens)",
+            data={"cost_usd": cost_usd, "tokens_prompt": tokens_prompt, "tokens_completion": tokens_completion},
+        )
+
+        return agent
+
     def update_project_status(self, project_id: str, status: ProjectStatus) -> Project | None:
         project = self.projects.get(project_id)
         if project:
