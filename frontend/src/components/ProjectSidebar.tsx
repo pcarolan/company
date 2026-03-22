@@ -33,6 +33,8 @@ export function ProjectSidebar() {
   const selectedProjectId = useAgentStore((s) => s.selectedProjectId)
   const selectProject = useAgentStore((s) => s.selectProject)
   const selectTask = useAgentStore((s) => s.selectTask)
+  const selectedPlanId = useAgentStore((s) => s.selectedPlanId)
+  const selectPlan = useAgentStore((s) => s.selectPlan)
   const [activeTab, setActiveTab] = useState<Tab>('plan')
   const plans = useAgentStore((s) => s.plans)
   const [width, setWidth] = useState(288) // 18rem = 288px
@@ -194,11 +196,17 @@ export function ProjectSidebar() {
           {/* Tabs */}
           <div className="flex border-b border-parchment-200 flex-shrink-0">
             {(['plan', 'agents', 'tasks'] as Tab[]).map((tab) => {
-              const count = tab === 'agents'
-                ? selectedProject.agent_ids.length
-                : tab === 'tasks'
-                  ? tasks.filter((t) => t.project_id === selectedProject.id).length
-                  : null
+              let count: number | null = null
+              if (tab === 'agents') {
+                count = selectedProject.agent_ids.length
+              } else if (tab === 'tasks') {
+                if (selectedPlanId) {
+                  const sp = plans.find((p) => p.id === selectedPlanId)
+                  count = sp ? sp.task_ids.filter((tid) => tasks.some((t) => t.id === tid)).length : 0
+                } else {
+                  count = tasks.filter((t) => t.project_id === selectedProject.id).length
+                }
+              }
               return (
                 <button
                   key={tab}
@@ -351,16 +359,22 @@ export function ProjectSidebar() {
                           const isEditing = editingPlanId === plan.id
                           const statusColor = PLAN_STATUS_COLORS[plan.status] || PLAN_STATUS_COLORS.draft
 
+                          const isSelectedPlan = selectedPlanId === plan.id
+
                           return (
                             <div key={plan.id} className={`
                               rounded border p-2
-                              ${isActive ? 'border-blood/30 bg-blood/[0.02]' : 'border-parchment-200 bg-white/30'}
+                              ${isSelectedPlan ? 'border-blood/50 bg-blood/[0.04]' : isActive ? 'border-blood/30 bg-blood/[0.02]' : 'border-parchment-200 bg-white/30'}
                             `}>
-                              {/* Plan header */}
-                              <div className="flex items-center justify-between mb-1">
+                              {/* Plan header — click to select */}
+                              <div
+                                className="flex items-center justify-between mb-1 cursor-pointer"
+                                onClick={(e) => { e.stopPropagation(); selectPlan(isSelectedPlan ? null : plan.id) }}
+                              >
                                 <div className="flex items-center gap-1.5">
                                   <span className="font-typewriter text-xs font-bold">{plan.name}</span>
                                   <span className="text-xs text-parchment-400 font-mono">v{plan.version}</span>
+                                  {isSelectedPlan && <span className="text-xs text-blood">◂</span>}
                                 </div>
                                 <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${statusColor}`}>
                                   {plan.status}
@@ -633,9 +647,34 @@ export function ProjectSidebar() {
             {/* Tasks tab */}
             {activeTab === 'tasks' && (
               <div className="px-4 py-3">
+                {/* Plan filter indicator */}
+                {selectedPlanId && (() => {
+                  const sp = plans.find((p) => p.id === selectedPlanId)
+                  return sp ? (
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-mono text-parchment-500">
+                        filtered by <span className="text-blood font-bold">{sp.name}</span>
+                      </span>
+                      <button
+                        onClick={() => selectPlan(null)}
+                        className="text-xs font-mono text-parchment-400 hover:text-parchment-600"
+                      >
+                        show all
+                      </button>
+                    </div>
+                  ) : null
+                })()}
+
                 <div className="space-y-1.5">
                   {tasks
-                    .filter((t) => t.project_id === selectedProject.id)
+                    .filter((t) => {
+                      if (t.project_id !== selectedProject.id) return false
+                      if (selectedPlanId) {
+                        const sp = plans.find((p) => p.id === selectedPlanId)
+                        if (sp) return sp.task_ids.includes(t.id)
+                      }
+                      return true
+                    })
                     .sort((a, b) => a.priority - b.priority)
                     .map((task) => {
                       const priorityBorder = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS[2]
