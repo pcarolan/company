@@ -66,22 +66,26 @@ export function ProjectSidebar() {
   const [creatingPlan, setCreatingPlan] = useState(false)
   const [newPlanName, setNewPlanName] = useState('')
 
-  const handleRun = useCallback(async (projectId: string) => {
+  const [runningPlanId, setRunningPlanId] = useState<string | null>(null)
+
+  const handleRunPlan = useCallback(async (planId: string) => {
     setRunLoading(true)
+    setRunningPlanId(planId)
     try {
-      await fetch(`/api/projects/${projectId}/run`, { method: 'POST' })
+      await fetch(`/api/plans/${planId}/run`, { method: 'POST' })
     } catch (e) {
-      console.error('Failed to start project', e)
+      console.error('Failed to start plan', e)
     }
     setRunLoading(false)
   }, [])
 
-  const handleStop = useCallback(async (projectId: string) => {
+  const handleStopPlan = useCallback(async (planId: string) => {
     try {
-      await fetch(`/api/projects/${projectId}/stop`, { method: 'POST' })
+      await fetch(`/api/plans/${planId}/stop`, { method: 'POST' })
     } catch (e) {
-      console.error('Failed to stop project', e)
+      console.error('Failed to stop plan', e)
     }
+    setRunningPlanId(null)
   }, [])
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId)
@@ -188,43 +192,6 @@ export function ProjectSidebar() {
             ) : (
               <span className="text-xs font-mono text-parchment-400 italic">no repo</span>
             )}
-
-            {/* Run / Stop button */}
-            <div className="mt-2">
-              {selectedProject.status === 'active' ? (
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleStop(selectedProject.id) }}
-                  className="
-                    w-full py-2 rounded font-typewriter text-sm
-                    bg-parchment-200 text-parchment-700 border border-parchment-300
-                    hover:bg-parchment-300 transition-colors
-                    flex items-center justify-center gap-2
-                  "
-                >
-                  <span>■</span> stop
-                </button>
-              ) : (
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleRun(selectedProject.id) }}
-                  disabled={runLoading}
-                  className="
-                    w-full py-2 rounded font-typewriter text-sm
-                    bg-blood text-white border border-blood
-                    hover:bg-blood/80 transition-colors
-                    disabled:opacity-50
-                    flex items-center justify-center gap-2
-                  "
-                >
-                  {runLoading ? (
-                    <span className="animate-pulse">starting...</span>
-                  ) : (
-                    <>
-                      <span>▶</span> run project
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
           </div>
 
           {/* Tabs */}
@@ -530,7 +497,34 @@ export function ProjectSidebar() {
                                       </button>
                                     )}
 
-                                    {isActive && (
+                                    {/* Run / Stop */}
+                                    {plan.status === 'active' && runningPlanId === plan.id ? (
+                                      <button
+                                        onClick={async (e) => { e.stopPropagation(); await handleStopPlan(plan.id) }}
+                                        className="text-xs font-mono px-2 py-0.5 rounded
+                                          bg-parchment-200 text-parchment-700 hover:bg-parchment-300
+                                          flex items-center gap-1"
+                                      >
+                                        <span>■</span> stop
+                                      </button>
+                                    ) : (plan.status === 'active' || plan.status === 'approved') && plan.content ? (
+                                      <button
+                                        onClick={async (e) => { e.stopPropagation(); await handleRunPlan(plan.id) }}
+                                        disabled={runLoading}
+                                        className="text-xs font-mono px-2 py-0.5 rounded
+                                          bg-blood text-white hover:bg-blood/80
+                                          disabled:opacity-50
+                                          flex items-center gap-1"
+                                      >
+                                        {runLoading && runningPlanId === plan.id ? (
+                                          <span className="animate-pulse">...</span>
+                                        ) : (
+                                          <>▶ run</>
+                                        )}
+                                      </button>
+                                    ) : null}
+
+                                    {isActive && !runningPlanId && (
                                       <span className="text-xs font-mono text-blood">● active</span>
                                     )}
                                   </div>
