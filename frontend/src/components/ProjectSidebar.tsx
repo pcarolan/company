@@ -107,11 +107,11 @@ export function ProjectSidebar() {
                   <span className="font-typewriter text-sm truncate">{project.name}</span>
                   {workingCount > 0 && (
                     <span className="flex items-center gap-1 text-xs">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blood opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-blood" />
-                      </span>
-                      <span className="font-mono text-blood">{workingCount}</span>
+                      <svg className="animate-spin h-3 w-3 text-blood/50" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                        <path className="opacity-60" d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                      </svg>
+                      <span className="font-mono text-blood/60">{workingCount}</span>
                     </span>
                   )}
                 </div>
@@ -553,10 +553,10 @@ export function ProjectSidebar() {
                             <div className="flex items-center gap-1.5">
                               <span className="font-typewriter text-xs font-bold truncate">{agent.name}</span>
                               {isWorking && (
-                                <span className="relative flex h-1.5 w-1.5">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blood opacity-75" />
-                                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blood" />
-                                </span>
+                                <svg className="animate-spin h-2.5 w-2.5 text-blood/50" viewBox="0 0 24 24" fill="none">
+                                  <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                                  <path className="opacity-60" d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                                </svg>
                               )}
                             </div>
                             {agent.thinking ? (

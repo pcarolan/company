@@ -28,9 +28,17 @@ export function AgentNode({ agent, selected, onSelect }: Props) {
         transform: 'translate(-50%, -50%)',
       }}
     >
-      {/* Working pulse ring */}
+      {/* Working spinner ring — subtle rotating border */}
       {isWorking && (
-        <div className="absolute -inset-1 rounded-xl border-2 border-blood/40 animate-ping pointer-events-none" />
+        <div
+          className="absolute -inset-1 rounded-xl pointer-events-none"
+          style={{
+            background: 'conic-gradient(from 0deg, transparent 70%, rgba(139,0,0,0.25) 100%)',
+            animation: 'spin 2s linear infinite',
+            WebkitMaskImage: 'radial-gradient(farthest-side, transparent calc(100% - 2px), black calc(100% - 2px))',
+            maskImage: 'radial-gradient(farthest-side, transparent calc(100% - 2px), black calc(100% - 2px))',
+          }}
+        />
       )}
 
       {/* Header */}
@@ -39,11 +47,13 @@ export function AgentNode({ agent, selected, onSelect }: Props) {
         <span className="font-typewriter text-sm font-bold truncate">
           {agent.name}
         </span>
-        {/* Live indicator dot */}
+        {/* Spinner dot */}
         {isWorking && (
-          <span className="ml-auto relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blood opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blood" />
+          <span className="ml-auto flex h-3 w-3 items-center justify-center">
+            <svg className="animate-spin h-3 w-3 text-blood/60" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+              <path className="opacity-70" d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+            </svg>
           </span>
         )}
       </div>
@@ -52,7 +62,7 @@ export function AgentNode({ agent, selected, onSelect }: Props) {
       <div className="flex items-center justify-between text-xs text-parchment-600">
         <span className="font-mono">{agent.role}</span>
         <span className={`px-1.5 py-0.5 rounded text-xs font-mono ${
-          agent.status === 'working' ? 'bg-blood/20 text-blood' :
+          agent.status === 'working' ? 'bg-blood/10 text-blood/70' :
           agent.status === 'stuck' ? 'bg-red-200 text-red-700' :
           'bg-parchment-300 text-parchment-700'
         }`}>
@@ -63,8 +73,8 @@ export function AgentNode({ agent, selected, onSelect }: Props) {
       {/* Thinking indicator */}
       {agent.thinking && (
         <div className="mt-2 flex items-start gap-1.5">
-          <span className="text-xs animate-pulse">💭</span>
-          <span className="text-xs font-mono text-parchment-600 italic leading-tight line-clamp-2">
+          <span className="text-xs text-parchment-400">›</span>
+          <span className="text-xs font-mono text-parchment-500 italic leading-tight line-clamp-2">
             {agent.thinking}
           </span>
         </div>
