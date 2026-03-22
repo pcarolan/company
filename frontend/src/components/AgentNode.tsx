@@ -28,33 +28,14 @@ export function AgentNode({ agent, selected, onSelect }: Props) {
         transform: 'translate(-50%, -50%)',
       }}
     >
-      {/* Working spinner ring — subtle rotating border */}
-      {isWorking && (
-        <div
-          className="absolute -inset-1 rounded-xl pointer-events-none"
-          style={{
-            background: 'conic-gradient(from 0deg, transparent 70%, rgba(139,0,0,0.25) 100%)',
-            animation: 'spin 2s linear infinite',
-            WebkitMaskImage: 'radial-gradient(farthest-side, transparent calc(100% - 2px), black calc(100% - 2px))',
-            maskImage: 'radial-gradient(farthest-side, transparent calc(100% - 2px), black calc(100% - 2px))',
-          }}
-        />
-      )}
-
       {/* Header */}
       <div className="flex items-center gap-2 mb-1">
         <span className="text-lg">{icon}</span>
         <span className="font-typewriter text-sm font-bold truncate">
           {agent.name}
         </span>
-        {/* Spinner dot */}
         {isWorking && (
-          <span className="ml-auto flex h-3 w-3 items-center justify-center">
-            <svg className="animate-spin h-3 w-3 text-blood/60" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-              <path className="opacity-70" d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-            </svg>
-          </span>
+          <span className="ml-auto h-3 w-3 rounded-full border-2 border-parchment-300 border-t-blood animate-spin" />
         )}
       </div>
 

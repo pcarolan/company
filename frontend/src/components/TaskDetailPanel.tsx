@@ -183,10 +183,7 @@ export function TaskDetailPanel() {
                   <span className="font-mono text-sm text-parchment-800">{assignedAgent.name}</span>
                   <span className="text-xs font-mono text-parchment-400">{assignedAgent.role}</span>
                   {assignedAgent.status === 'working' && assignedAgent.current_task_id === task.id && (
-                    <svg className="animate-spin h-3 w-3 text-blood/50" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                      <path className="opacity-60" d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                    </svg>
+                    <span className="h-3 w-3 rounded-full border-2 border-parchment-300 border-t-blood animate-spin" />
                   )}
                 </div>
               ) : (

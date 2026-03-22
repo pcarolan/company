@@ -147,11 +147,8 @@ export function ProjectSidebar() {
                   <span className="font-typewriter text-sm truncate">{project.name}</span>
                   {workingCount > 0 && (
                     <span className="flex items-center gap-1 text-xs">
-                      <svg className="animate-spin h-3 w-3 text-blood/50" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                        <path className="opacity-60" d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                      </svg>
-                      <span className="font-mono text-blood/60">{workingCount}</span>
+                      <span className="h-2.5 w-2.5 rounded-full border-2 border-parchment-300 border-t-blood animate-spin" />
+                      <span className="font-mono text-parchment-500">{workingCount}</span>
                     </span>
                   )}
                 </div>
@@ -583,10 +580,7 @@ export function ProjectSidebar() {
                             <div className="flex items-center gap-1.5">
                               <span className="font-typewriter text-xs font-bold truncate">{agent.name}</span>
                               {isWorking && (
-                                <svg className="animate-spin h-2.5 w-2.5 text-blood/50" viewBox="0 0 24 24" fill="none">
-                                  <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                                  <path className="opacity-60" d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                                </svg>
+                                <span className="h-2 w-2 rounded-full border-[1.5px] border-parchment-300 border-t-blood animate-spin" />
                               )}
                             </div>
                             {agent.thinking ? (
