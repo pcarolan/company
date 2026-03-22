@@ -39,6 +39,11 @@ class Task(BaseModel):
     x: float = 0.0
     y: float = 0.0
 
+    # git
+    commits: list[dict] = Field(default_factory=list)  # [{sha, message, url}]
+    branch: Optional[str] = None
+    diff_url: Optional[str] = None  # link to the full diff/PR
+
     # meta
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     closed_at: Optional[datetime] = None

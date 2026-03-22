@@ -199,6 +199,50 @@ export function TaskDetailPanel() {
               </div>
             )}
 
+            {/* Diff / Commits */}
+            {(task.diff_url || task.commits.length > 0) && (
+              <div className="mb-4">
+                <h4 className="font-typewriter text-xs text-parchment-500 mb-1">
+                  commits ({task.commits.length})
+                </h4>
+
+                {task.diff_url && (
+                  <a
+                    href={task.diff_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="
+                      inline-flex items-center gap-1 mb-2
+                      text-xs font-mono text-blood hover:underline
+                    "
+                  >
+                    ⎇ view diff →
+                  </a>
+                )}
+
+                <div className="space-y-1 max-h-40 overflow-y-auto">
+                  {task.commits.map((c, i) => (
+                    <div key={i} className="flex items-start gap-1.5">
+                      <span className="font-mono text-xs text-parchment-400 shrink-0">
+                        {c.sha.slice(0, 7)}
+                      </span>
+                      <span className="font-mono text-xs text-parchment-600 truncate">
+                        {c.message}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Branch */}
+            {task.branch && (
+              <div className="mb-4">
+                <h4 className="font-typewriter text-xs text-parchment-500 mb-1">branch</h4>
+                <span className="font-mono text-xs text-blood">{task.branch}</span>
+              </div>
+            )}
+
             {/* ID */}
             <div className="mb-4">
               <h4 className="font-typewriter text-xs text-parchment-500 mb-1">id</h4>

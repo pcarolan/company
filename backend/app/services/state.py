@@ -137,6 +137,18 @@ class CompanyState:
             task.status = TaskStatus.DONE
             task.closed_at = datetime.now(timezone.utc)
             task.close_reason = reason
+
+            # build diff URL from first..last commit if project has a repo
+            if task.commits and task.project_id:
+                project = self.projects.get(task.project_id)
+                if project and project.repo and "github.com" in (project.repo or ""):
+                    first_sha = task.commits[0]["sha"]
+                    last_sha = task.commits[-1]["sha"]
+                    if first_sha != last_sha:
+                        task.diff_url = f"{project.repo}/compare/{first_sha}...{last_sha}"
+                    else:
+                        task.diff_url = f"{project.repo}/commit/{last_sha}"
+
             if task.assigned_agent_id:
                 agent = self.agents.get(task.assigned_agent_id)
                 if agent:
@@ -147,13 +159,20 @@ class CompanyState:
 
     # --- events ---
 
-    def record_commit(self, agent_id: str, sha: str, message: str) -> Event:
+    def record_commit(self, agent_id: str, sha: str, message: str, url: str = "") -> Event:
         agent = self.agents.get(agent_id)
         if agent:
             agent.last_commit = sha
             agent.commits_this_session += 1
             agent.last_active = datetime.now(timezone.utc)
-        return self._emit(EventType.COMMIT, agent_id, message=message, data={"sha": sha})
+
+            # link commit to agent's current task
+            if agent.current_task_id:
+                task = self.tasks.get(agent.current_task_id)
+                if task:
+                    task.commits.append({"sha": sha, "message": message, "url": url})
+
+        return self._emit(EventType.COMMIT, agent_id, message=message, data={"sha": sha, "url": url})
 
     def record_revert(self, agent_id: str, reason: str = "") -> Event:
         agent = self.agents.get(agent_id)

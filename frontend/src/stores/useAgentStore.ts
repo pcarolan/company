@@ -59,6 +59,12 @@ export interface AgentMessage {
   timestamp: number  // Date.now()
 }
 
+export interface TaskCommit {
+  sha: string
+  message: string
+  url: string
+}
+
 export interface TaskNode {
   id: string
   title: string
@@ -67,6 +73,9 @@ export interface TaskNode {
   priority: number
   project_id: string | null
   assigned_agent_id: string | null
+  commits: TaskCommit[]
+  branch: string | null
+  diff_url: string | null
   x: number
   y: number
 }
