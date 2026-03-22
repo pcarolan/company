@@ -340,6 +340,20 @@ def delete_task(task_id: str):
     return {"ok": True}
 
 
+class RunTaskRequest(BaseModel):
+    agent_id: Optional[str] = None
+
+
+@router.post("/tasks/{task_id}/run")
+async def run_task(task_id: str, req: RunTaskRequest = RunTaskRequest()):
+    """Run a single task. Picks an idle agent if none specified."""
+    task = state.tasks.get(task_id)
+    if not task:
+        raise HTTPException(404, "Task not found")
+    await orchestrator.run_task(task_id, req.agent_id)
+    return {"status": "running", "task": task.model_dump(mode="json")}
+
+
 @router.post("/tasks/{task_id}/claim")
 def claim_task(task_id: str, req: ClaimTaskRequest):
     task = state.claim_task(task_id, req.agent_id)

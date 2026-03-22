@@ -173,7 +173,45 @@ class Orchestrator:
             await self.state.broadcast_canvas()
             self._running.pop(plan_id, None)
 
-    async def _agent_work_loop(self, plan_id: str, agent_id: str, task_id: str) -> None:
+    async def run_task(self, task_id: str, agent_id: str | None = None) -> None:
+        """Run a single task. Picks an idle agent from the project if none specified."""
+        task = self.state.tasks.get(task_id)
+        if not task:
+            return
+
+        project = self.state.projects.get(task.project_id) if task.project_id else None
+
+        # find an agent
+        if agent_id:
+            agent = self.state.agents.get(agent_id)
+        elif project:
+            # pick first idle agent in the project
+            agent = next(
+                (self.state.agents[aid] for aid in project.agent_ids
+                 if aid in self.state.agents
+                 and self.state.agents[aid].status == AgentStatus.IDLE),
+                None,
+            )
+        else:
+            agent = None
+
+        if not agent:
+            return
+
+        # claim if open
+        if task.status == TaskStatus.OPEN:
+            self.state.claim_task(task_id, agent.id)
+            await self.state.broadcast_canvas()
+
+        # run in background
+        key = f"task-{task_id}"
+        if key in self._running and not self._running[key].done():
+            return
+        self._running[key] = asyncio.create_task(
+            self._agent_work_loop(None, agent.id, task_id)
+        )
+
+    async def _agent_work_loop(self, plan_id: str | None, agent_id: str, task_id: str) -> None:
         """Simulate an agent working on a task.
 
         In the future this will spawn a real OpenClaw session.

@@ -117,8 +117,20 @@ export function TaskDetailPanel() {
           <span className="font-mono text-xs text-parchment-400">{task.id}</span>
         </div>
 
-        {/* Delete */}
-        <div className="pt-3 border-t border-parchment-200">
+        {/* Actions */}
+        <div className="pt-3 border-t border-parchment-200 flex items-center gap-2">
+          {(task.status === 'open' || task.status === 'claimed') && (
+            <button
+              onClick={async () => {
+                await fetch(`/api/tasks/${task.id}/run`, { method: 'POST' })
+              }}
+              className="text-xs font-mono px-3 py-1 rounded
+                bg-blood text-white hover:bg-blood/80
+                flex items-center gap-1 transition-colors"
+            >
+              ▶ run
+            </button>
+          )}
           <button
             onClick={async () => {
               await fetch(`/api/tasks/${task.id}`, { method: 'DELETE' })
@@ -128,7 +140,7 @@ export function TaskDetailPanel() {
               text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300
               transition-colors"
           >
-            delete task
+            delete
           </button>
         </div>
       </div>
