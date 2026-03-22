@@ -382,7 +382,7 @@ export function ProjectSidebar() {
                                     value={planDraft}
                                     onChange={(e) => setPlanDraft(e.target.value)}
                                     className="
-                                      w-full min-h-[200px] font-mono text-xs text-parchment-800
+                                      w-full min-h-[600px] font-mono text-xs text-parchment-800
                                       bg-white/80 border border-parchment-300 rounded p-2 resize-y
                                       focus:outline-none focus:border-blood/50
                                     "
@@ -420,7 +420,7 @@ export function ProjectSidebar() {
                                   {plan.content && (
                                     <pre
                                       className="text-xs font-mono text-parchment-600 whitespace-pre-wrap leading-relaxed
-                                        max-h-32 overflow-y-auto cursor-pointer hover:bg-parchment-50 rounded p-1 -mx-1 mt-1"
+                                        max-h-96 overflow-y-auto cursor-pointer hover:bg-parchment-50 rounded p-1 -mx-1 mt-1"
                                       onClick={() => { setPlanDraft(plan.content); setEditingPlanId(plan.id) }}
                                     >
                                       {plan.content}
