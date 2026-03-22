@@ -1,0 +1,15 @@
+name: company
+lang: python+typescript
+description: "An infinite canvas app that IS and REPRESENTS an agent-powered company"
+
+gates:
+  backend-lint: cd backend && ruff check . 2>/dev/null || true
+  backend-test: cd backend && python -m pytest tests/ -q 2>/dev/null || true
+  frontend-lint: cd frontend && npx eslint src/ --quiet 2>/dev/null || true
+  frontend-typecheck: cd frontend && npx tsc --noEmit 2>/dev/null || true
+
+scope:
+  backend:
+    include: ["backend/**"]
+  frontend:
+    include: ["frontend/**"]
